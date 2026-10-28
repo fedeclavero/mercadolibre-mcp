@@ -1,5 +1,7 @@
 # Mercado Libre MCP
 
+[![CI](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml)
+
 [English](docs/README-en.md) · [Instalación](docs/INSTALACION.md) · [Automatizaciones](docs/AUTOMATIZACIONES.md) · [Contribuir](CONTRIBUTING.md)
 
 Servidor MCP (Model Context Protocol) para vendedores de Mercado Libre. Conecta Codex y otros clientes MCP con la API oficial para gestionar publicaciones, catálogo, stock, preguntas y promociones mediante instrucciones en lenguaje natural. Funciona por `stdio` y utiliza OAuth con renovación del token. El proyecto no está afiliado a Mercado Libre.
