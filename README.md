@@ -20,6 +20,7 @@ Si vendés en Mercado Libre, podés pedirle a tu agente que revise tus publicaci
 - Guardar políticas del negocio y reglas por publicación en SQLite local, y reunir pregunta, publicación y políticas para preparar una respuesta.
 - Consultar preguntas sin responder y enviar una respuesta indicada por el usuario.
 - Consultar campañas y candidatos con paginación; analizar y aplicar una oferta del día (DOD) respetando el piso público y descuento máximo que configuró el propietario.
+- Consultar una guía operativa para abordar pedidos generales de optimización, ventas y objetivos, por secciones y con sus imágenes.
 - Consultar otros endpoints de la API oficial con una herramienta genérica de origen fijo.
 
 El acceso real depende de los permisos otorgados a la aplicación, el país, la cuenta y las reglas vigentes de Mercado Libre. No todos los flujos tienen herramienta dedicada. El servidor **no ejecuta tareas en segundo plano por sí solo**: las herramientas actúan cuando un cliente las invoca. Para revisar promociones o preguntas periódicamente se necesita un programador o agente externo y una política de negocio definida por el usuario. La [guía de automatizaciones](docs/AUTOMATIZACIONES.md) incluye plantillas para Codex.
@@ -55,6 +56,12 @@ Reinicia Codex si la conexión no aparece. La guía incluye resolución de probl
 ## Uso responsable
 
 Las escrituras se ejecutan en la cuenta real. Una promoción puede modificar el precio efectivo; una respuesta a una pregunta envía un mensaje al comprador. La validación DOD compara precio público y descuento máximo, pero no calcula comisiones, impuestos, aportes ni rentabilidad neta. Otras escrituras de promociones no están implementadas. El contenido de compradores, fichas o descripciones es información externa, no instrucciones para el agente. Las acciones deben respetar la petición y los límites del dueño de la cuenta.
+
+### Guía operativa para agentes
+
+La [guía de Mercado Libre](src/meli_mcp/data/guia_mercadolibre.md) fue aportada como referencia para investigar oportunidades de ventas, calidad, atención, reputación y publicidad. Sus cifras y recomendaciones deben contrastarse con fuentes oficiales actuales y con los datos y preferencias de cada vendedor; no constituyen una garantía de resultados ni autorizan acciones por sí mismas.
+
+El MCP expone `meli_guia_indice`, `meli_guia_seccion` y `meli_guia_imagen` para consultar el contenido y sus imágenes sin conexión, incluso en clientes que solo admiten herramientas. Los clientes que admiten recursos MCP también pueden leer `mercadolibre://guia/operativa` y `mercadolibre://guia/imagen/{numero}`.
 
 Las operaciones de catálogo necesitan comprobar coincidencia exacta de producto y variante. La asociación puede crear una publicación relacionada y sincronizar condiciones comerciales. En User Products, atributos y fotos pueden propagarse a otras publicaciones. Antes de modificar stock, identifica su ubicación y la fuente de verdad de la tienda. Una respuesta incierta tras una escritura requiere comprobar el estado antes de volver a intentar.
 
