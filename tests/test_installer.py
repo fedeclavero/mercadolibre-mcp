@@ -84,7 +84,7 @@ def test_json_clients_create_merge_idempotent_and_backup(tmp_path, cid):
     assert final["otra_clave"] == {"x": 1} and final[client.container]["otro"] == {"command": "otro"}
     entry = final[client.container]["mercadolibre"]
     assert "/opt/uvx" in json.dumps(entry)
-    assert json.loads(Path(outcome.backup).read_text())[client.container]["mercadolibre"] != entry
+    assert json.loads(Path(outcome.backup).read_text(encoding="utf-8"))[client.container]["mercadolibre"] != entry
 
 
 def test_entry_shapes_follow_each_client_format(tmp_path):
@@ -152,7 +152,7 @@ def test_jsonc_comments_are_tolerated_and_reported(tmp_path):
     outcome = install_client("zed", SPEC, env)[0]
     assert outcome.status == "added" and outcome.warning and "comentarios" in outcome.warning and outcome.verified
     assert read_json(path)["theme"] == "One Dark"
-    assert "// mi config" in Path(outcome.backup).read_text()
+    assert "// mi config" in Path(outcome.backup).read_text(encoding="utf-8")
 
 
 def test_invalid_json_is_never_overwritten(tmp_path):
@@ -162,7 +162,7 @@ def test_invalid_json_is_never_overwritten(tmp_path):
     path.write_text("{no es json")
     outcome = install_client("cursor", SPEC, env)[0]
     assert outcome.status == "error" and "Próximo paso" in outcome.detail
-    assert path.read_text() == "{no es json"
+    assert path.read_text(encoding="utf-8") == "{no es json"
 
 
 def test_dry_run_writes_nothing(tmp_path):
@@ -179,7 +179,7 @@ def test_codex_toml_merge_preserves_other_settings_and_is_idempotent(tmp_path):
     path.write_text(original)
     outcome = install_client("codex", SPEC, env)[0]
     assert outcome.status == "updated" and outcome.verified and outcome.backup
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     assert "# comentario propio" in text and "[profiles.p]" in text
     data = tomllib.loads(text)
     assert data["model"] == "gpt-5" and data["mcp_servers"]["otro"] == {"command": "otro"}
@@ -193,7 +193,7 @@ def test_codex_creates_config_and_handles_windows_paths(tmp_path):
     spec = ServerSpec("mercadolibre", r"C:\Users\Ana\.local\bin\uvx.exe", SPEC.args)
     outcome = install_client("codex", spec, env)[0]
     assert outcome.status == "created"
-    assert tomllib.loads((env.home / ".codex/config.toml").read_text())["mcp_servers"]["mercadolibre"]["command"] == r"C:\Users\Ana\.local\bin\uvx.exe"
+    assert tomllib.loads((env.home / ".codex/config.toml").read_text(encoding="utf-8"))["mcp_servers"]["mercadolibre"]["command"] == r"C:\Users\Ana\.local\bin\uvx.exe"
 
 
 def test_invalid_toml_is_not_touched(tmp_path):
@@ -202,7 +202,7 @@ def test_invalid_toml_is_not_touched(tmp_path):
     path.parent.mkdir(parents=True)
     path.write_text("esto = = no es toml")
     assert install_client("codex", SPEC, env)[0].status == "error"
-    assert path.read_text() == "esto = = no es toml"
+    assert path.read_text(encoding="utf-8") == "esto = = no es toml"
 
 
 def test_detection_and_selection(tmp_path):

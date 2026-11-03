@@ -159,7 +159,7 @@ except ValueError:
         assert process.returncode == 0, err
         results.append(out.strip())
     assert sorted(results) == ["blocked", "sent"]
-    assert (tmp_path / "sent.log").read_text().splitlines() == ["send"]
+    assert (tmp_path / "sent.log").read_text(encoding="utf-8").splitlines() == ["send"]
 
 
 def test_question_context_enriches_without_buyer_contact(monkeypatch, tmp_path):

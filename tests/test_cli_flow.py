@@ -55,7 +55,7 @@ def test_version_flag_matches_package_and_pyproject(capsys):
     with pytest.raises(SystemExit):
         cli.main(["--version"])
     assert capsys.readouterr().out.strip() == f"mercadolibre-mcp {__version__}"
-    pyproject = tomllib.loads((Path(__file__).parent.parent / "pyproject.toml").read_text())
+    pyproject = tomllib.loads((Path(__file__).parent.parent / "pyproject.toml").read_text(encoding="utf-8"))
     assert pyproject["project"]["version"] == __version__
 
 
@@ -158,16 +158,19 @@ def test_authorize_listens_on_https_localhost_with_self_signed_certificate(state
     seen = []
     token_endpoint(monkeypatch, seen)
     results = {}
-    thread = threading.Thread(target=lambda: results.update(cli.authorize(timeout=20, as_json=True)))
+    ready = threading.Event()
+    thread = threading.Thread(target=lambda: results.update(cli.authorize(timeout=20, as_json=True, ready=ready)))
     thread.start()
+    assert ready.wait(timeout=10), "Server did not start listening in time"
     deadline = time.time() + 15
+    reply = None
     while time.time() < deadline:
         try:
-            wrong = httpx.get(f"https://127.0.0.1:{port}/otra-ruta", verify=False, timeout=2)
+            wrong = httpx.get(f"https://127.0.0.1:{port}/otra-ruta", verify=False, timeout=5)
             assert wrong.status_code == 404
             reply = httpx.get(f"https://127.0.0.1:{port}/callback?code=dummy-code&state=state-test", headers={"Host": f"localhost:{port}"}, verify=False, timeout=5)
             break
-        except httpx.ConnectError:
+        except (httpx.ConnectError, httpx.TimeoutException):
             time.sleep(0.1)
     thread.join(timeout=20)
     assert reply.status_code == 200 and "dummy-code" not in reply.text

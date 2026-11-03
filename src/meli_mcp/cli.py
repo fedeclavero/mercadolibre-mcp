@@ -88,7 +88,7 @@ def setup(*, client_id: str | None = None, client_secret: str | None = None, red
 # --------------------------------------------------------------------------------------------- authorize
 
 def authorize(*, start: bool = False, finish: bool = False, callback_url: str | None = None, code: str | None = None, listen: bool | None = None,
-              open_browser: bool = True, timeout: float = 300, as_json: bool = False) -> dict[str, Any]:
+              open_browser: bool = True, timeout: float = 300, as_json: bool = False, ready: threading.Event | None = None) -> dict[str, Any]:
     """Authorizes the account. Default: listens on https://localhost when the redirect URI points there, else asks for the return URL."""
     config = load_private("config.json")
     redirect = config["redirect_uri"]
@@ -121,7 +121,7 @@ def authorize(*, start: bool = False, finish: bool = False, callback_url: str | 
     if use_listener:
         print("El navegador va a mostrar una advertencia de certificado para localhost: es normal; tocá Avanzado y Continuar.", file=sys.stderr)
         if open_browser: webbrowser.open(url)
-        returned = authflow.listen_for_callback(redirect, tls=True, timeout=timeout)
+        returned = authflow.listen_for_callback(redirect, tls=True, timeout=timeout, ready=ready)
     else:
         print("Luego copiá la URL completa de la barra de direcciones, aunque la página no cargue.", file=sys.stderr)
         if open_browser: webbrowser.open(url)

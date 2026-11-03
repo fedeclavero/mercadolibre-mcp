@@ -36,7 +36,7 @@ def test_rotate_once_under_concurrency(state):
     assert load_private("token.json")["refresh_token"] == "refresh-new"
     if os.name != "nt":
         assert (state / "token.json").stat().st_mode & 0o777 == 0o600
-    assert "refresh-new" not in (state / "audit.jsonl").read_text()
+    assert "refresh-new" not in (state / "audit.jsonl").read_text(encoding="utf-8")
 
 def test_get_401_refresh_once_and_mutation_never_retried(state):
     write_private(state / "token.json", {"access_token": "old", "refresh_token": "refresh-old", "expires_at": time.time()+3600})
@@ -132,5 +132,5 @@ print(MeliClient(httpx.MockTransport(fake)).access_token())
         out, err = process.communicate(timeout=30)
         assert process.returncode == 0, err
         assert out.strip() == "new"
-    assert (state / "refresh-count.txt").read_text().splitlines() == ["refresh"]
+    assert (state / "refresh-count.txt").read_text(encoding="utf-8").splitlines() == ["refresh"]
     assert load_private("token.json")["refresh_token"] == "new-refresh"

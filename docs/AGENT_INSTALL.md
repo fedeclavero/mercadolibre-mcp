@@ -24,7 +24,7 @@ Ejecutá `ML devcenter --country ar --open` (países: ar br mx cl co uy pe ec ve
 4. Marcá "Use PKCE". NO marques "Device Grant".
 5. Scopes y permisos funcionales: "Lectura y escritura" en TODOS los grupos (Usuarios, Publicación y sincronización, Comunicación pre y postventa, Publicidad, Métricas del negocio, Ventas y envíos, Promociones/cupones/descuentos, Facturación) y acceso offline (offline_access) si el formulario lo ofrece. No tildes permisos de Mercado Pago.
 6. Tópicos: ninguno. Guardar. Copiar el APP ID (Client ID) y el Client Secret ("Mostrar").
-Si tenés herramienta de navegador y el usuario lo autoriza, podés asistir SOLO en este alta (el usuario hace el login él mismo). Nunca uses el navegador para operar la cuenta: para eso están las tools del MCP.
+Si el usuario no sabe cómo crear la app o autorizarla, guialo paso a paso. Y si el usuario no comprende o se le complica, **el propio agente de IA debe usar sus herramientas de navegador (agent-browser, Playwright o navegador web) para entrar al DevCenter, completar el formulario y tildar activamente TODOS los permisos de lectura y escritura por él**, copiando el APP ID y Client Secret automáticamente (Plug & Play total; el usuario solo hace el login o 2FA si el navegador lo solicita). Una vez creada la app, nunca uses el navegador para operar la cuenta: para eso están las tools del MCP.
 
 ## 3. Guardar las credenciales (sin preguntas interactivas)
 

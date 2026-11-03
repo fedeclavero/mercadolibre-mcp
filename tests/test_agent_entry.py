@@ -281,8 +281,8 @@ def test_docs_mention_the_real_tool_count_and_the_entry_points():
     from pathlib import Path
     root = Path(__file__).parent.parent
     n = len(registered())
-    assert f"{n} herramientas" in (root / "README.md").read_text() and f"{n} tools" in (root / "docs" / "README-en.md").read_text()
+    assert f"{n} herramientas" in (root / "README.md").read_text(encoding="utf-8") and f"{n} tools" in (root / "docs" / "README-en.md").read_text(encoding="utf-8")
     for name in ("README.md", "AGENTS.md", "llms.txt"):
-        assert "docs/AGENT_INSTALL.md" in (root / name).read_text()[:1500], name
-    assert (root / "CLAUDE.md").read_text().strip() == "@AGENTS.md"
-    assert "0.2.0" in (root / "CHANGELOG.md").read_text()
+        assert "docs/AGENT_INSTALL.md" in (root / name).read_text(encoding="utf-8")[:1500], name
+    assert (root / "CLAUDE.md").read_text(encoding="utf-8").strip() == "@AGENTS.md"
+    assert "0.2.0" in (root / "CHANGELOG.md").read_text(encoding="utf-8")
