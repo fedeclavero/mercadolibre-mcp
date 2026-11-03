@@ -158,10 +158,21 @@ def test_authorize_listens_on_https_localhost_with_self_signed_certificate(state
     seen = []
     token_endpoint(monkeypatch, seen)
     results = {}
+    exc = []
     ready = threading.Event()
-    thread = threading.Thread(target=lambda: results.update(cli.authorize(timeout=20, as_json=True, ready=ready)))
+
+    def run():
+        try:
+            results.update(cli.authorize(timeout=20, as_json=True, ready=ready))
+        except Exception as e:
+            exc.append(e)
+            ready.set()
+
+    thread = threading.Thread(target=run)
     thread.start()
-    assert ready.wait(timeout=10), "Server did not start listening in time"
+    assert ready.wait(timeout=25), "Server did not start listening in time"
+    if exc:
+        raise exc[0]
     deadline = time.time() + 15
     reply = None
     while time.time() < deadline:

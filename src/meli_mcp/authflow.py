@@ -190,8 +190,11 @@ def listen_for_callback(redirect_uri: str, *, tls: bool = True, timeout: float =
         def log_message(self, *args: Any) -> None:  # the request line carries the code
             return
 
+    class CallbackServer(http.server.HTTPServer):
+        allow_reuse_address = True
+
     try:
-        server = http.server.HTTPServer((host, port), Handler)
+        server = CallbackServer((host, port), Handler)
     except OSError:
         raise MeliError(f"No se pudo abrir el puerto {port} en este equipo (¿está ocupado?). Próximo paso: cerrá lo que lo usa o registrá en la app otra URL de redirección con otro puerto y ejecutá `{CLI} setup` con ella.") from None
     if tls:
