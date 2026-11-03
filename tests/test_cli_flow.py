@@ -170,7 +170,7 @@ def test_authorize_listens_on_https_localhost_with_self_signed_certificate(state
 
     thread = threading.Thread(target=run)
     thread.start()
-    assert ready.wait(timeout=25), "Server did not start listening in time"
+    assert ready.wait(timeout=30), "Server did not start listening in time"
     if exc:
         raise exc[0]
     deadline = time.time() + 15

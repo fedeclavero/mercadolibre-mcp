@@ -146,7 +146,7 @@ def _self_signed_context() -> ssl.SSLContext:
             .not_valid_before(now - datetime.timedelta(days=1)).not_valid_after(now + datetime.timedelta(days=2))
             .add_extension(x509.SubjectAlternativeName([x509.DNSName("localhost"), x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), critical=False)
             .sign(key, hashes.SHA256()))
-    context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     with tempfile.TemporaryDirectory() as folder:
         key_file, cert_file = Path(folder) / "k.pem", Path(folder) / "c.pem"
         fd = os.open(key_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
