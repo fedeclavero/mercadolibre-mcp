@@ -1,0 +1,11 @@
+# Mercado Libre MCP
+
+> Servidor MCP (Python) para administrar una cuenta de vendedor de Mercado Libre con la API oficial: publicaciones, fotos, combos/kits, precios, stock, pedidos, preguntas, promociones y catálogo.
+
+Si te pidieron instalarlo: seguí docs/AGENT_INSTALL.md (instalación autónoma; pedí permiso una vez, no devuelvas pasos al usuario, nunca edites configuraciones a mano: `mercadolibre-mcp install --client all`).
+Si ya está conectado: usá las tools meli_* y NO el navegador, agent-browser ni scraping (es más lento y falla). Empezá con meli_start_here; si no sabés qué tool, meli_find_tool; último recurso meli_api_request.
+
+- [Guía de instalación para agentes](docs/AGENT_INSTALL.md)
+- [Instrucciones para agentes](AGENTS.md)
+- [README](README.md)
+- [Guía de instalación para personas](docs/INSTALACION.md)

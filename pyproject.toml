@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mercadolibre-mcp"
-version = "0.1.0"
-description = "Servidor MCP local para administrar Mercado Libre mediante su API oficial"
+version = "0.2.0"
+description = "Servidor MCP para administrar Mercado Libre mediante su API oficial, con instalación guiada por agentes de IA"
 requires-python = ">=3.11"
-dependencies = ["mcp>=1.20,<2", "httpx>=0.27,<1"]
+dependencies = ["mcp>=1.20,<2", "httpx>=0.27,<1", "cryptography>=42"]
 
 [project.optional-dependencies]
 test = ["pytest>=8", "pytest-asyncio>=0.23"]

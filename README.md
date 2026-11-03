@@ -1,10 +1,13 @@
 # Mercado Libre MCP
 
+> **Si sos una IA y te pidieron instalar este MCP:** seguí [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md) (instalación autónoma: pedí permiso una vez, no edites configuraciones a mano, `mercadolibre-mcp install --client all`).
+> **Si ya está conectado:** usá las tools `meli_*`, NO el navegador ni agent-browser. Empezá con `meli_start_here`; si no sabés qué tool, `meli_find_tool`; último recurso `meli_api_request`.
+
 [![CI](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml)
 
-[English](docs/README-en.md) · [Instalación](docs/INSTALACION.md) · [Automatizaciones](docs/AUTOMATIZACIONES.md) · [Contribuir](CONTRIBUTING.md)
+[English](docs/README-en.md) · [Instalación para agentes](docs/AGENT_INSTALL.md) · [Instalación](docs/INSTALACION.md) · [Automatizaciones](docs/AUTOMATIZACIONES.md) · [Contribuir](CONTRIBUTING.md)
 
-Servidor MCP (Model Context Protocol) para vendedores de Mercado Libre. Conecta Codex y otros clientes MCP con la API oficial para gestionar publicaciones, catálogo, stock, preguntas y promociones mediante instrucciones en lenguaje natural. Funciona por `stdio` y utiliza OAuth con renovación del token. El proyecto no está afiliado a Mercado Libre.
+Servidor MCP (Model Context Protocol) para vendedores de Mercado Libre. Conecta Claude, Codex, Gemini CLI, Cursor, Windsurf, VS Code, OpenCode, Antigravity, Cline, Zed y otros clientes MCP con la API oficial para gestionar publicaciones, catálogo, stock, preguntas y promociones mediante instrucciones en lenguaje natural. Funciona por `stdio` y utiliza OAuth con renovación del token. El proyecto no está afiliado a Mercado Libre.
 
 ## Para qué sirve
 
@@ -21,37 +24,28 @@ Si vendés en Mercado Libre, podés pedirle a tu agente que revise tus publicaci
 - Consultar preguntas sin responder y enviar una respuesta indicada por el usuario.
 - Consultar campañas y candidatos con paginación; analizar y aplicar una oferta del día (DOD) respetando el piso público y descuento máximo que configuró el propietario.
 - Consultar una guía operativa para abordar pedidos generales de optimización, ventas y objetivos, por secciones y con sus imágenes.
+- Armar combos/kits virtuales con sus publicaciones: `meli_combo_plan` planifica y `meli_upload_picture` sube la imagen desde un archivo local, base64 o URL HTTPS (verifica que sea una imagen real JPG/PNG).
+- Una entrada pensada para IAs: `meli_start_here` (mapa), `meli_find_tool` (búsqueda en lenguaje natural), `meli_get_recipe` (recetas) y `meli_status` (diagnóstico), también como prompts y recursos MCP. Las descripciones de las 48 herramientas empiezan con "USÁ ESTA TOOL PARA ..." y los errores terminan con un "Próximo paso".
 - Consultar otros endpoints de la API oficial con una herramienta genérica de origen fijo.
+- Modo por defecto de lectura y escritura; modo solo lectura opcional (`mercadolibre-mcp mode read-only`).
 
 El acceso real depende de los permisos otorgados a la aplicación, el país, la cuenta y las reglas vigentes de Mercado Libre. No todos los flujos tienen herramienta dedicada. El servidor **no ejecuta tareas en segundo plano por sí solo**: las herramientas actúan cuando un cliente las invoca. Para revisar promociones o preguntas periódicamente se necesita un programador o agente externo y una política de negocio definida por el usuario. La [guía de automatizaciones](docs/AUTOMATIZACIONES.md) incluye plantillas para Codex.
 
 ## Instalación
 
-Requisitos: Python 3.11 o posterior, [uv](https://docs.astral.sh/uv/getting-started/installation/), Git y un cliente MCP como Codex. La app y la cuenta son del vendedor; el propietario realiza su propia autorización.
+Lo normal es pedirle a tu agente de IA: "instalá el MCP de Mercado Libre siguiendo docs/AGENT_INSTALL.md". Hace todo él: instala `uv` y Git si faltan, te guía para crear la app en el DevCenter (con todos los permisos), guarda las credenciales, autoriza la cuenta y registra el servidor en tus clientes. No hace falta clonar el repositorio.
+
+Los comandos, para quien prefiera hacerlo a mano (`ML` = `uvx --from git+https://github.com/fedeclavero/mercadolibre-mcp mercadolibre-mcp`):
 
 ```text
-git clone https://github.com/fedeclavero/mercadolibre-mcp.git
-cd mercadolibre-mcp
-uv sync --frozen
+ML devcenter --country ar --open     # guía exacta para crear la app
+ML setup --client-id APP_ID --client-secret-stdin --redirect-uri https://localhost:8765/callback --country ar
+ML authorize                         # abre el navegador y captura el permiso
+ML install --client all              # detecta tus clientes MCP, copia de respaldo, idempotente
+ML doctor                            # diagnóstico y próximo paso
 ```
 
-Después ejecuta `uv run mercadolibre-mcp setup`, `uv run mercadolibre-mcp authorize` y `uv run mercadolibre-mcp check`. El secreto se ingresa localmente y no se muestra en pantalla. La [guía de instalación y autorización](docs/INSTALACION.md) explica cada paso para Windows, Linux y macOS, incluida la URL de redirección.
-
-Para conectar Codex, registra el ejecutable del entorno local. En PowerShell, desde la carpeta del proyecto:
-
-```powershell
-codex mcp add mercadolibre -- "$((Resolve-Path .venv\Scripts\mercadolibre-mcp.exe).Path)" serve
-codex mcp list
-```
-
-En Linux o macOS:
-
-```bash
-codex mcp add mercadolibre -- "$(pwd)/.venv/bin/mercadolibre-mcp" serve
-codex mcp list
-```
-
-Reinicia Codex si la conexión no aparece. La guía incluye resolución de problemas y cómo desvincular el servidor.
+Requisitos: [uv](https://docs.astral.sh/uv/getting-started/installation/) y Git. `ML --version` muestra la versión. La [guía de instalación](docs/INSTALACION.md) y [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md) cubren Windows, Linux y macOS, ChatGPT (requiere un servidor remoto HTTPS; ver la sección correspondiente) y la resolución de problemas.
 
 ## Uso responsable
 
@@ -71,7 +65,7 @@ El acceso genérico permite operaciones de escritura y no sustituye las polític
 
 ## Preguntas frecuentes
 
-**¿Puedo usarlo con Codex en Windows?** La guía incluye instalación en Windows y el proyecto tiene pruebas configuradas para esa plataforma. Comprueba el resultado de CI y la instalación en tu equipo; se necesita Python, `uv` y una aplicación de Mercado Libre autorizada.
+**¿Puedo usarlo en Windows?** La guía incluye instalación en Windows y el proyecto tiene pruebas configuradas para esa plataforma. Comprueba el resultado de CI y la instalación en tu equipo; se necesita `uv`, Git y una aplicación de Mercado Libre autorizada.
 
 **¿Puede responder consultas automáticamente?** Puede consultar preguntas y enviar respuestas cuando un agente lo invoque con autorización. Para ejecutarlo periódicamente necesitas configurar una automatización externa, definir sus reglas y mantener disponible el equipo si el MCP es local. [Ver la guía](docs/AUTOMATIZACIONES.md).
 

@@ -14,9 +14,36 @@ from urllib.parse import quote, unquote, urlsplit
 import httpx
 
 API_ORIGIN = "https://api.mercadolibre.com"
+CLI = "mercadolibre-mcp"
+WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 class MeliError(Exception):
     """An actionable error safe to return to the agent."""
+
+
+# Permission groups of the DevCenter form (official page "Permisos funcionales") and the API
+# resources each one covers. Used only to tell the agent which group to tick on a 403.
+PERMISSION_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Publicación y sincronización", ("/items", "/pictures", "/prices", "/categories", "/user-products", "/sites", "/domains", "/products")),
+    ("Comunicación pre y postventa", ("/questions", "/answers", "/messages", "/claims", "/post-purchase", "/returns")),
+    ("Ventas y envíos", ("/orders", "/shipments", "/shipping", "/packs", "/payments")),
+    ("Promociones, cupones y descuentos", ("/seller-promotions", "/promotions", "/deals", "/offers")),
+    ("Publicidad", ("/advertising", "/marketplace/advertising")),
+    ("Métricas del negocio", ("/trends", "/highlights", "/visits", "/reputation")),
+    ("Facturación", ("/invoices", "/billing", "/users/me/invoices")),
+)
+
+
+def permission_hint(method: str, path: str) -> str:
+    """Names the DevCenter permission group likely missing for a 403, without claiming certainty."""
+    clean = "/" + path.strip("/").lower()
+    group = next((name for name, prefixes in PERMISSION_GROUPS if any(clean == p or clean.startswith(p + "/") or clean.startswith(p + "?") for p in prefixes)), None)
+    level = "Lectura y escritura" if method.upper() in WRITE_METHODS else "Solo lectura"
+    if group is None:
+        group = "el grupo de permisos correspondiente a este recurso"
+    return (f" Posible causa: falta el permiso \"{group}\" con nivel \"{level}\" en la app. "
+            f"Próximo paso: en el DevCenter abrí la app, tildá \"{group}\" con \"Lectura y escritura\", guardá y ejecutá `{CLI} authorize` para volver a autorizar; "
+            f"si ya lo tenía, revisá que la cuenta sea la titular y no un colaborador.")
 
 
 def state_dir() -> Path:
@@ -28,7 +55,7 @@ def ensure_state_dir() -> Path:
     path = state_dir()
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     if path.is_symlink():
-        raise MeliError("El directorio de credenciales no puede ser un enlace simbólico")
+        raise MeliError("El directorio de credenciales no puede ser un enlace simbólico. Próximo paso: borrá ese enlace o elegí otra carpeta con la variable MELI_MCP_STATE_DIR.")
     if os.name != "nt":
         os.chmod(path, 0o700)
     return path
@@ -63,12 +90,28 @@ def load_private(name: str) -> dict[str, Any]:
         with path.open(encoding="utf-8") as f:
             value = json.load(f)
     except FileNotFoundError:
-        raise MeliError("Falta la configuración o autorización. Ejecuta mercadolibre-mcp setup y authorize.") from None
+        raise MeliError(f"Falta la configuración o autorización de Mercado Libre ({name}). Próximo paso: ejecutá `{CLI} doctor` para ver qué falta; normalmente es `{CLI} setup` y luego `{CLI} authorize` (guía: docs/AGENT_INSTALL.md).") from None
     except (json.JSONDecodeError, OSError):
-        raise MeliError(f"No se pudo leer {name}; revisa el archivo local de configuración.") from None
+        raise MeliError(f"No se pudo leer {name}. Próximo paso: ejecutá `{CLI} doctor`; si el archivo está dañado, volvé a correr `{CLI} setup` y `{CLI} authorize`.") from None
     if not isinstance(value, dict):
-        raise MeliError(f"El archivo {name} es inválido.")
+        raise MeliError(f"El archivo {name} es inválido. Próximo paso: ejecutá `{CLI} doctor`.")
     return value
+
+
+def access_mode() -> str:
+    """'full' (default: read and write) or 'read_only'. Env MELI_MCP_MODE wins over config.json; a missing config means 'full'."""
+    forced = os.environ.get("MELI_MCP_MODE", "").strip().lower().replace("-", "_")
+    if forced in {"read_only", "readonly", "ro"}:
+        return "read_only"
+    if forced in {"full", "read_write", "rw"}:
+        return "full"
+    try:
+        with (state_dir() / "config.json").open(encoding="utf-8") as f:
+            config = json.load(f)
+    except (OSError, ValueError):
+        return "full"
+    mode = str(config.get("mode", "full")).strip().lower().replace("-", "_") if isinstance(config, dict) else "full"
+    return "read_only" if mode in {"read_only", "readonly"} else "full"
 
 
 _process_lock = threading.RLock()
@@ -94,7 +137,7 @@ def operation_lock(name: str) -> Iterator[None]:
                         break
                     except OSError as exc:
                         if time.monotonic() >= deadline:
-                            raise MeliError("No se pudo adquirir el bloqueo de credenciales en 30 segundos.") from exc
+                            raise MeliError("No se pudo adquirir el bloqueo de credenciales en 30 segundos. Próximo paso: cerrá otros procesos de mercadolibre-mcp y reintentá.") from exc
                         time.sleep(0.05)
             else:
                 import fcntl
@@ -117,22 +160,22 @@ def token_lock() -> contextlib.AbstractContextManager[None]:
 def segment(value: str | int) -> str:
     text = str(value)
     if not text or not all(c.isascii() and (c.isalnum() or c in "_-") for c in text):
-        raise MeliError("ID inválido: usa letras, números, guion o guion bajo.")
+        raise MeliError("ID inválido: usá solo letras, números, guion o guion bajo (por ejemplo MLA123456789). Próximo paso: corregí el ID y reintentá.")
     return quote(text, safe="")
 
 
 def checked_path(path: str) -> str:
     """Accept path only, never a URL or redirect to any other authority."""
     if not isinstance(path, str) or not path.startswith("/") or path.startswith("//"):
-        raise MeliError("La ruta debe empezar con / y no debe ser una URL.")
+        raise MeliError("La ruta debe empezar con / y no debe ser una URL (ejemplo: /users/me). Próximo paso: pasá solo la ruta.")
     parts = urlsplit(path)
     decoded = unquote(parts.path)
     if "%" in parts.path or parts.scheme or parts.netloc or parts.query or parts.fragment or "\\" in decoded or any(p in (".", "..") for p in decoded.split("/")) or decoded.startswith("//"):
-        raise MeliError("Ruta inválida; pasa los parámetros en query y no uses URL ni rutas relativas.")
+        raise MeliError("Ruta inválida. Próximo paso: pasá los parámetros en `query` y no uses URLs ni rutas relativas.")
     if decoded.lower().rstrip("/") == "/oauth/token":
-        raise MeliError("OAuth solo se administra mediante el comando authorize.")
+        raise MeliError(f"OAuth solo se administra con el comando `{CLI} authorize`. Próximo paso: ejecutá ese comando en la terminal.")
     if any(ord(c) < 32 for c in decoded):
-        raise MeliError("La ruta contiene caracteres inválidos.")
+        raise MeliError("La ruta contiene caracteres inválidos. Próximo paso: corregí la ruta.")
     return parts.path
 
 
@@ -161,11 +204,11 @@ class MeliClient:
             try:
                 expires_at = float(token.get("expires_at", 0))
             except (ValueError, TypeError):
-                raise MeliError("El archivo token.json tiene una expiración inválida; vuelve a autorizar.") from None
+                raise MeliError(f"El archivo token.json tiene una expiración inválida. Próximo paso: ejecutá `{CLI} authorize` para volver a autorizar.") from None
             if token.get("access_token") and expires_at > time.time() + 60 and (stale_token is None or token["access_token"] != stale_token):
                 return token["access_token"]
             if not token.get("refresh_token"):
-                raise MeliError("No hay refresh token. Autoriza otra vez con offline_access habilitado.")
+                raise MeliError(f"No hay refresh token. Próximo paso: en el DevCenter verificá que la app tenga el acceso offline (offline_access) y ejecutá `{CLI} authorize`.")
             config = load_private("config.json")
             payload = {"grant_type": "refresh_token", "client_id": config["client_id"], "client_secret": config["client_secret"], "refresh_token": token["refresh_token"]}
             try:
@@ -173,34 +216,39 @@ class MeliClient:
                     response = client.post("/oauth/token", data=payload)
             except httpx.HTTPError:
                 # A network failure may occur after the server consumed this one-use token.
-                raise MeliError("No se pudo completar la renovación. El token podría haberse consumido; si persiste, vuelve a autorizar.") from None
+                raise MeliError(f"No se pudo completar la renovación (error de red). El token podría haberse consumido. Próximo paso: reintentá en unos segundos; si persiste, ejecutá `{CLI} authorize`.") from None
             if response.is_error:
-                raise MeliError(f"Renovación OAuth rechazada (HTTP {response.status_code}). Verifica permisos o vuelve a autorizar.")
+                raise MeliError(f"Renovación OAuth rechazada (HTTP {response.status_code}). Próximo paso: ejecutá `{CLI} authorize` para volver a autorizar y `{CLI} doctor` para revisar la app.")
             try:
                 new = response.json()
                 if not new.get("access_token") or not new.get("refresh_token"):
                     raise ValueError("missing rotating token")
                 new["expires_at"] = time.time() + int(new["expires_in"])
             except (ValueError, KeyError, TypeError):
-                raise MeliError("Respuesta OAuth incompleta: vuelve a autorizar.") from None
+                raise MeliError(f"Respuesta OAuth incompleta. Próximo paso: ejecutá `{CLI} authorize`.") from None
             write_private(ensure_state_dir() / "token.json", new)
             return new["access_token"]
 
-    def request(self, method: str, path: str, query: dict[str, Any] | None = None, body: Any = None, extra_headers: dict[str, str] | None = None) -> Any:
+    def request(self, method: str, path: str, query: dict[str, Any] | None = None, body: Any = None, extra_headers: dict[str, str] | None = None, *, files: dict[str, Any] | None = None) -> Any:
+        """Authenticated call. `files` sends multipart (picture upload)."""
         method = method.upper()
         if method not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
-            raise MeliError("Método no admitido.")
+            raise MeliError("Método no admitido. Próximo paso: usá GET, POST, PUT, PATCH o DELETE.")
         path = checked_path(path)
+        if method in WRITE_METHODS and access_mode() == "read_only":
+            raise MeliError(f"Esta instalación está en modo SOLO LECTURA y no permite {method} {path}. Próximo paso: si el usuario quiere habilitar cambios, pedile permiso y ejecutá `{CLI} mode full` (hace falta reiniciar el cliente); si no, limitate a consultas.")
         if query and any(str(k).lower() in {"access_token", "client_secret", "refresh_token", "authorization"} for k in query):
-            raise MeliError("No envíes credenciales en los parámetros.")
+            raise MeliError("No envíes credenciales en los parámetros. Próximo paso: quitá access_token/client_secret de `query`; el servidor ya autentica solo.")
         allowed_headers = {"x-version", "x-format-new"}
         supplied = {str(k).lower(): str(v) for k, v in (extra_headers or {}).items()}
         if any(k not in allowed_headers for k in supplied) or any("\n" in v or "\r" in v for v in supplied.values()):
-            raise MeliError("Solo se admiten las cabeceras x-version y x-format-new.")
+            raise MeliError("Solo se admiten las cabeceras x-version y x-format-new. Próximo paso: quitá las demás cabeceras.")
         current_token = self.access_token()
         def send(token: str) -> httpx.Response:
             headers = {"Authorization": f"Bearer {token}", "Accept": "application/json", **supplied}
             with self._client() as client:
+                if files:
+                    return client.request(method, path, params=query, files=files, headers=headers)
                 return client.request(method, path, params=query, json=body, headers=headers)
         try:
             response = send(current_token)
@@ -211,14 +259,19 @@ class MeliClient:
                 audit(method, path, "network_error")
             except (OSError, MeliError):
                 pass
-            raise MeliError("Falló la conexión a Mercado Libre. Si era una escritura, verifica el resultado antes de reintentar.") from None
+            raise MeliError("Falló la conexión a Mercado Libre. Próximo paso: si era una consulta, reintentá en unos segundos; si era una escritura, consultá primero el estado remoto (meli_get_item u otra tool de lectura) antes de reintentar.") from None
         warning = None
         try:
             audit(method, path, response.status_code)
         except (OSError, MeliError):
             warning = "La operación respondió, pero no se pudo guardar en el registro de auditoría."
         if response.status_code >= 300:
-            explanation = {401: "Token inválido o vencido; prueba volver a autorizar.", 403: "Acceso denegado: revisa la cuenta, permisos y alcance de la aplicación.", 404: "Recurso inexistente o no accesible.", 429: "Límite de solicitudes; espera antes de reintentar."}.get(response.status_code, "Revisa los datos enviados y la documentación de este recurso.")
+            explanation = {
+                401: f"Token inválido o vencido. Próximo paso: ejecutá `{CLI} authorize` para volver a autorizar y reintentá.",
+                403: "Acceso denegado." + permission_hint(method, path),
+                404: "Recurso inexistente o no accesible. Próximo paso: verificá el ID con una tool de lectura (meli_my_items, meli_get_item) y que pertenezca a la cuenta autorizada.",
+                429: "Límite de solicitudes. Próximo paso: esperá unos segundos y reintentá más despacio.",
+            }.get(response.status_code, "Próximo paso: revisá los datos enviados (meli_validate_item sirve para publicaciones) o consultá la documentación oficial del recurso.")
             try:
                 err = response.json()
                 code = err.get("error", "") if isinstance(err, dict) else ""
