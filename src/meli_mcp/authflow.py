@@ -190,8 +190,15 @@ def listen_for_callback(redirect_uri: str, *, tls: bool = True, timeout: float =
         def log_message(self, *args: Any) -> None:  # the request line carries the code
             return
 
+    import socketserver
+
     class CallbackServer(http.server.HTTPServer):
         allow_reuse_address = True
+
+        def server_bind(self) -> None:
+            socketserver.TCPServer.server_bind(self)
+            self.server_name = "localhost"
+            self.server_port = self.server_address[1]
 
     try:
         server = CallbackServer((host, port), Handler)
