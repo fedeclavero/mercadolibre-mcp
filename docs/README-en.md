@@ -6,7 +6,7 @@ The server includes OAuth with token refresh, local seller policies, question co
 
 ## Setup
 
-AI agents: follow [AGENT_INSTALL.md](AGENT_INSTALL.md) (autonomous setup: ask permission once, never hand-edit client configs). Nothing to clone; you need [uv](https://docs.astral.sh/uv/getting-started/installation/) and Git. `ML` below is `uvx --from git+https://github.com/fedeclavero/mercadolibre-mcp mercadolibre-mcp`.
+For assisted setup, follow [AGENT_INSTALL.md](AGENT_INSTALL.md). Download the Rust binary for your platform from [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest) and place it in a stable directory. In the examples, replace `ML` with `mercadolibre-mcp` or the full path to the executable. Upgrading from 0.2.x takes one `ML install --client all` run and a restart of the MCP client. The Rust version reads the existing credentials and seller data.
 
 ```text
 ML devcenter --country ar --open   # exact steps to create the DevCenter app (all permissions, read and write)
@@ -16,7 +16,7 @@ ML install --client all            # Claude Code/Desktop, Codex, Gemini CLI, Cur
 ML doctor                          # diagnosis with the next step
 ```
 
-The default mode is read and write; `ML mode read-only` is optional. The server exposes 48 tools whose descriptions start with "USE THIS TOOL TO ..." (in Spanish), an entry tool `meli_start_here`, a natural-language `meli_find_tool`, recipes, and virtual kit (combo) planning with local image upload. ChatGPT web needs a remote HTTPS MCP server; see [AGENT_INSTALL.md](AGENT_INSTALL.md). The detailed [Spanish setup guide](INSTALACION.md) covers Windows, Linux and macOS.
+The default mode is read and write; `ML mode read-only` is optional. The server exposes 48 tools, including the entry tool `meli_start_here`, a natural-language `meli_find_tool`, recipes, and virtual kit (combo) planning with local image upload. ChatGPT web needs a remote HTTPS MCP server; see [AGENT_INSTALL.md](AGENT_INSTALL.md). The detailed [Spanish setup guide](INSTALACION.md) covers Windows, Linux and macOS.
 
 Scheduled work requires an external scheduler or agent: the MCP server does not run unattended by itself. The [automation guide](AUTOMATIZACIONES.md) provides editable Spanish examples for reviewing promotions and handling questions. Answers and commercial changes affect real users and prices when authorized.
 

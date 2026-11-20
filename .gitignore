@@ -25,3 +25,9 @@ audit.jsonl
 *.pfx
 
 .scratch/
+
+/target/
+promotions.lock
+http-token
+http-token.lock
+pending-auth.json

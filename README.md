@@ -7,7 +7,7 @@
 
 [English](docs/README-en.md) · [Instalación para agentes](docs/AGENT_INSTALL.md) · [Instalación](docs/INSTALACION.md) · [Automatizaciones](docs/AUTOMATIZACIONES.md) · [Contribuir](CONTRIBUTING.md)
 
-Servidor MCP (Model Context Protocol) para vendedores de Mercado Libre. Conecta Claude, Codex, Gemini CLI, Cursor, Windsurf, VS Code, OpenCode, Antigravity, Cline, Zed y otros clientes MCP con la API oficial para gestionar publicaciones, catálogo, stock, preguntas y promociones mediante instrucciones en lenguaje natural. Funciona por `stdio` y utiliza OAuth con renovación del token. El proyecto no está afiliado a Mercado Libre.
+Servidor MCP (Model Context Protocol) escrito en Rust para vendedores de Mercado Libre. Conecta Claude, Codex, Gemini CLI, Cursor, Windsurf, VS Code, OpenCode, Antigravity, Cline, Zed y otros clientes MCP con la API oficial para gestionar publicaciones, catálogo, stock, preguntas y promociones mediante instrucciones en lenguaje natural. Funciona por `stdio` y Streamable HTTP y utiliza OAuth con renovación del token. El proyecto no está afiliado a Mercado Libre.
 
 ## Para qué sirve
 
@@ -24,8 +24,8 @@ Si vendés en Mercado Libre, podés pedirle a tu agente que revise tus publicaci
 - Consultar preguntas sin responder y enviar una respuesta indicada por el usuario.
 - Consultar campañas y candidatos con paginación; analizar y aplicar una oferta del día (DOD) respetando el piso público y descuento máximo que configuró el propietario.
 - Consultar una guía operativa para abordar pedidos generales de optimización, ventas y objetivos, por secciones y con sus imágenes.
-- Armar combos/kits virtuales con sus publicaciones: `meli_combo_plan` planifica y `meli_upload_picture` sube la imagen desde un archivo local, base64 o URL HTTPS (verifica que sea una imagen real JPG/PNG).
-- Una entrada pensada para IAs: `meli_start_here` (mapa), `meli_find_tool` (búsqueda en lenguaje natural), `meli_get_recipe` (recetas) y `meli_status` (diagnóstico), también como prompts y recursos MCP. Las descripciones de las 48 herramientas empiezan con "USÁ ESTA TOOL PARA ..." y los errores terminan con un "Próximo paso".
+- Armar combos/kits virtuales con sus publicaciones: `meli_combo_plan` planifica y `meli_upload_picture` acepta JPG/PNG por URL HTTPS o base64. Con `stdio` también admite archivos locales.
+- Una entrada pensada para IAs: `meli_start_here` (mapa), `meli_find_tool` (búsqueda en lenguaje natural), `meli_get_recipe` (recetas) y `meli_status` (diagnóstico), también como prompts y recursos MCP. El servidor ofrece 48 herramientas con esquemas de entrada y ejemplos.
 - Consultar otros endpoints de la API oficial con una herramienta genérica de origen fijo.
 - Modo por defecto de lectura y escritura; modo solo lectura opcional (`mercadolibre-mcp mode read-only`).
 
@@ -33,19 +33,17 @@ El acceso real depende de los permisos otorgados a la aplicación, el país, la 
 
 ## Instalación
 
-Lo normal es pedirle a tu agente de IA: "instalá el MCP de Mercado Libre siguiendo docs/AGENT_INSTALL.md". Hace todo él: instala `uv` y Git si faltan, te guía para crear la app en el DevCenter (con todos los permisos), guarda las credenciales, autoriza la cuenta y registra el servidor en tus clientes. No hace falta clonar el repositorio.
-
-Los comandos, para quien prefiera hacerlo a mano (`ML` = `uvx --from git+https://github.com/fedeclavero/mercadolibre-mcp mercadolibre-mcp`):
+Pedile a tu agente «instalá el MCP de Mercado Libre siguiendo docs/AGENT_INSTALL.md» o descargá el ejecutable para tu equipo desde [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest). Hay binarios para Linux x86-64, macOS Intel y Apple Silicon, y Windows x86-64. La [guía de instalación](docs/INSTALACION.md) explica dónde guardar el ejecutable y cómo crear tu aplicación de Mercado Libre.
 
 ```text
-ML devcenter --country ar --open     # guía exacta para crear la app
-ML setup --client-id APP_ID --client-secret-stdin --redirect-uri https://localhost:8765/callback --country ar
-ML authorize                         # abre el navegador y captura el permiso
-ML install --client all              # detecta tus clientes MCP, copia de respaldo, idempotente
-ML doctor                            # diagnóstico y próximo paso
+mercadolibre-mcp devcenter --country ar --open
+mercadolibre-mcp setup --client-id APP_ID --redirect-uri https://localhost:8765/callback --country ar
+mercadolibre-mcp authorize
+mercadolibre-mcp install --client all
+mercadolibre-mcp doctor
 ```
 
-Requisitos: [uv](https://docs.astral.sh/uv/getting-started/installation/) y Git. `ML --version` muestra la versión. La [guía de instalación](docs/INSTALACION.md) y [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md) cubren Windows, Linux y macOS, ChatGPT (requiere un servidor remoto HTTPS; ver la sección correspondiente) y la resolución de problemas.
+Si ya usabas la versión anterior, instalá el nuevo binario y ejecutá `mercadolibre-mcp install --client all` para actualizar el comando registrado. El nuevo servidor usa la misma configuración, autorización y memoria local. Reiniciá el cliente de IA después del cambio.
 
 ## Uso responsable
 
@@ -53,7 +51,7 @@ Las escrituras se ejecutan en la cuenta real. Una promoción puede modificar el 
 
 ### Guía operativa para agentes
 
-La [guía de Mercado Libre](src/meli_mcp/data/guia_mercadolibre.md) fue aportada como referencia para investigar oportunidades de ventas, calidad, atención, reputación y publicidad. Sus cifras y recomendaciones deben contrastarse con fuentes oficiales actuales y con los datos y preferencias de cada vendedor; no constituyen una garantía de resultados ni autorizan acciones por sí mismas.
+La [guía de Mercado Libre](src/data/guia_mercadolibre.md) fue aportada como referencia para investigar oportunidades de ventas, calidad, atención, reputación y publicidad. Sus cifras y recomendaciones deben contrastarse con fuentes oficiales actuales y con los datos y preferencias de cada vendedor; no constituyen una garantía de resultados ni autorizan acciones por sí mismas.
 
 El MCP expone `meli_guia_indice`, `meli_guia_seccion` y `meli_guia_imagen` para consultar el contenido y sus imágenes sin conexión, incluso en clientes que solo admiten herramientas. Los clientes que admiten recursos MCP también pueden leer `mercadolibre://guia/operativa` y `mercadolibre://guia/imagen/{numero}`.
 
@@ -65,7 +63,7 @@ El acceso genérico permite operaciones de escritura y no sustituye las polític
 
 ## Preguntas frecuentes
 
-**¿Puedo usarlo en Windows?** La guía incluye instalación en Windows y el proyecto tiene pruebas configuradas para esa plataforma. Comprueba el resultado de CI y la instalación en tu equipo; se necesita `uv`, Git y una aplicación de Mercado Libre autorizada.
+**¿Puedo usarlo en Windows?** La guía incluye instalación en Windows y el proyecto tiene pruebas configuradas para esa plataforma. Comprueba el resultado de CI y la instalación en tu equipo; se necesita el ejecutable de Windows y una aplicación de Mercado Libre autorizada.
 
 **¿Puede responder consultas automáticamente?** Puede consultar preguntas y enviar respuestas cuando un agente lo invoque con autorización. Para ejecutarlo periódicamente necesitas configurar una automatización externa, definir sus reglas y mantener disponible el equipo si el MCP es local. [Ver la guía](docs/AUTOMATIZACIONES.md).
 
@@ -76,9 +74,10 @@ El acceso genérico permite operaciones de escritura y no sustituye las polític
 ## Desarrollo
 
 ```bash
-uv sync --frozen --extra test
-uv run --frozen pytest -q
-uv build
+cargo fmt --all -- --check
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --locked --all-targets
+cargo build --locked --release
 ```
 
 Las pruebas usan datos simulados y no modifican una cuenta real. El flujo de CI está configurado para Linux, Windows y macOS; el estado de CI y las plataformas realmente probadas deben verificarse en GitHub. Consulta [AGENTS.md](AGENTS.md) y [mantenimiento](docs/MANTENIMIENTO.md) para ampliar o actualizar la integración.

@@ -1,0 +1,51 @@
+[package]
+name = "mercadolibre-mcp"
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.89"
+description = "Servidor MCP para vendedores de Mercado Libre"
+license = "MIT"
+repository = "https://github.com/fedeclavero/mercadolibre-mcp"
+include = ["/src/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/LICENSE"]
+
+[dependencies]
+anyhow = "1"
+axum = "0.8"
+base64 = "0.22"
+caseless = "0.2"
+clap = { version = "4", features = ["derive"] }
+dirs = "6"
+fs2 = "0.4"
+getrandom = "0.4"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+include_dir = "0.7"
+jsonc-parser = { version = "0.34", features = ["cst", "serde"] }
+jsonschema = { version = "0.46", default-features = false }
+libc = "0.2"
+open = "5"
+rcgen = { version = "0.14", default-features = false, features = ["ring"] }
+regex = "1"
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "form", "json", "multipart", "query"] }
+rmcp = { version = "3.11", features = ["client", "transport-io", "transport-child-process", "transport-streamable-http-server", "transport-streamable-http-client-reqwest"] }
+rpassword = "7"
+rusqlite = { version = "0.40", features = ["bundled"] }
+rust_decimal = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+subtle = "2"
+tempfile = "3"
+time = { version = "0.3", features = ["formatting"] }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "process", "rt-multi-thread", "signal", "time"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+toml_edit = "0.25"
+unicode-normalization = "0.1"
+url = "2"
+which = "8"
+
+[profile.release]
+lto = "thin"
+strip = "debuginfo"

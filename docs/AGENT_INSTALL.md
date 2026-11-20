@@ -1,19 +1,14 @@
 # Instalación para agentes de IA (ejecutala de punta a punta)
 
-Si el usuario te pidió instalar o conectar el MCP de Mercado Libre, hacelo VOS con esta guía. El usuario no sabe de claves, tokens ni archivos de configuración: no le pidas que edite nada; pedile solo lo que no podés obtener vos (APP ID, Client Secret y un par de clics). Hablale en su idioma y en lenguaje simple.
+Usá esta guía cuando el usuario te pida instalar o conectar el MCP. Llamá `ML` al ejecutable `mercadolibre-mcp` en los comandos de abajo. Usá su ruta completa si hace falta.
 
-Alias usado abajo (no hay que clonar nada): `ML` = `uvx --from git+https://github.com/fedeclavero/mercadolibre-mcp mercadolibre-mcp`
+## 0. Acordá el acceso
 
-## 0. Pedí permiso UNA vez
+Confirmá que podés guardar las credenciales en el equipo y modificar la configuración del cliente MCP, si el usuario todavía no autorizó esas acciones. Guialo para que inicie sesión y apruebe OAuth en su navegador. Para el Client Secret usá la entrada estándar en el paso 3. Evitá copiarlo en comandos, registros o resúmenes.
 
-Decile al usuario, en simple: "Voy a instalar el conector de Mercado Libre. Necesito tu permiso para ver y guardar en esta computadora las claves de tu app de Mercado Libre y para editar la configuración de tu programa de IA. ¿Me das permiso?". Con el "sí", hacé todo sin volver a frenarte. Está PROHIBIDO contestar "eso no puedo hacerlo, hacelo vos" en tareas de instalación o configuración: si falta una clave, pedísela ("pasame tu App ID") y colocala vos.
-Higiene que se mantiene: no subas claves a git, no repitas el Client Secret en resúmenes, el servidor las guarda con permisos privados (600).
+## 1. Instalá el binario
 
-## 1. Prerrequisitos (instalalos con permiso del usuario si faltan)
-
-Comprobá con `uv --version` y `git --version`.
-- uv. Linux/macOS: `curl -LsSf https://astral.sh/uv/install.sh | sh` (o `brew install uv`). Windows PowerShell: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"` (o `winget install --id=astral-sh.uv -e`). Abrí una terminal nueva después.
-- Git. Linux: `sudo apt-get install git` o `sudo dnf install git`. macOS: `xcode-select --install` o `brew install git`. Windows: `winget install --id Git.Git -e --source winget`.
+Identificá el sistema y la arquitectura y usá el archivo correspondiente de [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest). Extraelo a una ubicación estable según la [guía de instalación](INSTALACION.md#1-obtener-el-ejecutable). Comprobá que `ML --version` responde. Si el usuario ya tiene una cuenta conectada, probá `ML doctor` y pasá directo al paso 5 cuando confirme la autorización.
 
 ## 2. Crear la app en el DevCenter de Mercado Libre
 
@@ -22,13 +17,13 @@ Ejecutá `ML devcenter --country ar --open` (países: ar br mx cl co uy pe ec ve
 2. "Crear nueva aplicación". Nombre único, descripción (150 caracteres máx.) y logo cualquiera.
 3. URI de redirección HTTPS (obligatoria): `https://localhost:8765/callback`. La documentación oficial exige HTTPS pero no aclara si acepta localhost: si el formulario la rechaza, probá `https://127.0.0.1:8765/callback`, luego `https://www.mercadolibre.com.ar/` (el ejemplo de la propia documentación), o una URL HTTPS de un dominio del usuario. Usá luego esa misma URI en el paso 3.
 4. Marcá "Use PKCE". NO marques "Device Grant".
-5. Scopes y permisos funcionales: "Lectura y escritura" en TODOS los grupos (Usuarios, Publicación y sincronización, Comunicación pre y postventa, Publicidad, Métricas del negocio, Ventas y envíos, Promociones/cupones/descuentos, Facturación) y acceso offline (offline_access) si el formulario lo ofrece. No tildes permisos de Mercado Pago.
+5. Habilitá los grupos que necesita el vendedor. Usá "Solo lectura" para consultas y "Lectura y escritura" en los grupos donde haya cambios autorizados. Habilitá el acceso offline (offline_access) si aparece, para renovar la autorización.
 6. Tópicos: ninguno. Guardar. Copiar el APP ID (Client ID) y el Client Secret ("Mostrar").
-Si el usuario no sabe cómo crear la app o autorizarla, guialo paso a paso. Y si el usuario no comprende o se le complica, **el propio agente de IA debe usar sus herramientas de navegador (agent-browser, Playwright o navegador web) para entrar al DevCenter, completar el formulario y tildar activamente TODOS los permisos de lectura y escritura por él**, copiando el APP ID y Client Secret automáticamente (Plug & Play total; el usuario solo hace el login o 2FA si el navegador lo solicita). Una vez creada la app, nunca uses el navegador para operar la cuenta: para eso están las tools del MCP.
+El usuario completa el inicio de sesión y el segundo factor. Si acompañás la creación desde el navegador, revisá los permisos elegidos con el usuario antes de guardar.
 
 ## 3. Guardar las credenciales (sin preguntas interactivas)
 
-Pedile al usuario el APP ID y el Client Secret y ejecutá (el secreto por stdin):
+Recibí el App ID y pasá el Client Secret al proceso por stdin. Usá una variable temporal en estos ejemplos y limpiala después de ejecutar el comando.
 - Linux/macOS: `printf '%s' "$SECRET" | ML setup --client-id APP_ID --client-secret-stdin --redirect-uri https://localhost:8765/callback --country ar --json`
 - Windows PowerShell: `"$SECRET" | ML setup --client-id APP_ID --client-secret-stdin --redirect-uri https://localhost:8765/callback --country ar --json` (con `ML` expandido).
 También valen variables `MELI_CLIENT_ID`, `MELI_CLIENT_SECRET`, `MELI_REDIRECT_URI`, `MELI_COUNTRY`, `MELI_PKCE`. Por defecto el modo es lectura y escritura; solo lectura es opcional (`--mode read-only` o `ML mode read-only`).
@@ -46,17 +41,19 @@ Plan B (URI no local o puerto ocupado): `ML authorize --start --json`, el usuari
 
 `ML doctor` (o `--json`): hacé cada "Próximo paso" que imprima hasta que diga todo listo. Pedile al usuario que cierre y abra por completo su programa de IA; luego llamá `meli_start_here` y `meli_status`. `ML --version` muestra la versión.
 
-## ChatGPT (honestidad)
+## ChatGPT
 
-- Codex (CLI, app e IDE) usa la configuración local: `ML install --client codex`.
-- ChatGPT web exige un servidor MCP remoto por HTTPS (según la documentación de OpenAI); no acepta el modo local stdio. Su formulario ofrece OAuth o "sin autenticación", no un token en cabecera. Rutas: (a) OpenAI "Secure MCP Tunnel" (`tunnel-client` con `--mcp-command`, requiere cuenta de plataforma OpenAI; sin verificar aquí de punta a punta); (b) `ML serve --transport http --port 8765 --allowed-host <dominio-del-túnel>` más un túnel HTTPS hacia `http://127.0.0.1:8765`, y pegar en ChatGPT la URL de `ML http-token --public-url https://<dominio-del-túnel>` (el token va en la ruta; el servidor escucha solo en 127.0.0.1 y rechaza pedidos sin token). Sin verificar de punta a punta con ChatGPT. Si lo exponés, usá `ML mode read-only`.
+- Codex (CLI, app e IDE) usa la configuración local con `ML install --client codex`.
+- En ChatGPT web, agregá un servidor MCP personalizado mediante un túnel o una URL HTTPS. Para un servidor privado, [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) admite un comando local como `mercadolibre-mcp serve` mediante `--mcp-command`. Hace falta un túnel en la plataforma OpenAI y acceso desde el espacio de ChatGPT.
+- Si el vendedor ya tiene un túnel HTTPS hacia su computadora, iniciá `ML serve --transport http --port 8765 --allowed-host <dominio-del-túnel>` y apuntá el túnel a `http://127.0.0.1:8765`. Usá `ML http-token --public-url https://<dominio-del-túnel>` para generar la URL del conector. Tratá esa URL como una credencial y excluí la ruta de los registros del proxy. Usá `ML mode read-only` para una conexión de consulta. [Documentación de ChatGPT](https://developers.openai.com/api/docs/guides/custom-mcp-server)
+- Verificá la conexión llamando `meli_start_here` y `meli_status`. Por HTTP, la subida de fotos acepta HTTPS público o base64.
 
 ## Si algo falla
 
 | Síntoma | Qué hacer |
 | --- | --- |
 | 401 | `ML authorize` |
-| 403 o "falta permiso" | El error nombra el grupo; el usuario lo tilda con "Lectura y escritura" en el DevCenter, guarda, y `ML authorize` |
-| `uvx` o `git` no encontrado | Paso 1 |
+| 403 o "falta permiso" | El error nombra el grupo; elegí el nivel que indica el error en el DevCenter y ejecutá `ML authorize` |
+| `mercadolibre-mcp` no encontrado | Paso 1 |
 | El cliente no ve el MCP | Reinicio completo del cliente; `ML doctor` |
 | Puerto 8765 ocupado | Registrar otra URI con otro puerto y repetir `setup` |

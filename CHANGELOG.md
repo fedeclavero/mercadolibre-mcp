@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Servidor y CLI en Rust con el SDK oficial de MCP. Conserva 48 herramientas, recursos, recetas, prompts, OAuth y el estado local de 0.2.x.
+- El instalador actualiza entradas oficiales que usaban `uvx`, valida el arranque antes de escribir la configuración y conserva comentarios en los archivos JSONC.
+- El receptor OAuth abre el puerto antes de iniciar el navegador. La renovación de tokens sigue serializada entre procesos.
+- El transporte HTTP aplica la rotación del token al siguiente pedido y admite imágenes por URL HTTPS o base64. En `stdio` también admite archivos locales. Los JPG/PNG deben poder decodificarse.
+- La guía del DevCenter indica los permisos funcionales según las operaciones que necesita el vendedor.
+
 ## 0.2.0
 
 ### Instalación guiada por agentes

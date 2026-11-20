@@ -1,24 +1,37 @@
 # Instalación y conexión
 
-La forma recomendada es pedirle a tu agente de IA que instale el servidor siguiendo [AGENT_INSTALL.md](AGENT_INSTALL.md): él ejecuta todos los comandos y solo te pide el APP ID y el Client Secret y un par de clics. Esta página explica lo mismo para una persona. En los ejemplos `ML` es `uvx --from git+https://github.com/fedeclavero/mercadolibre-mcp mercadolibre-mcp`.
+Podés pedirle a tu agente de IA que siga la [guía para agentes](AGENT_INSTALL.md). En los ejemplos, reemplazá `ML` por `mercadolibre-mcp` o por la ruta del binario.
 
-## 1. Programas necesarios
+## 1. Obtener el ejecutable
 
-Instala [uv](https://docs.astral.sh/uv/getting-started/installation/) (Linux/macOS: `curl -LsSf https://astral.sh/uv/install.sh | sh`; Windows PowerShell: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`) y Git (Linux `sudo apt-get install git`; macOS `xcode-select --install`; Windows `winget install --id Git.Git -e --source winget`). Abre una terminal nueva. No hace falta clonar el repositorio.
+Descargá la versión de [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest) que corresponde a tu equipo.
+
+| Equipo | Archivo |
+| --- | --- |
+| Linux Intel o AMD de 64 bits | `mercadolibre-mcp-linux-x86_64.tar.gz` |
+| Mac Apple Silicon | `mercadolibre-mcp-macos-arm64.tar.gz` |
+| Mac Intel | `mercadolibre-mcp-macos-x86_64.tar.gz` |
+| Windows Intel o AMD de 64 bits | `mercadolibre-mcp-windows-x86_64.zip` |
+
+Extraé el archivo y guardá el binario en una carpeta estable, por ejemplo `~/.local/bin` (Linux/macOS) o `%LOCALAPPDATA%\Programs\mercadolibre-mcp` (Windows). Usá su ruta completa si la carpeta no está en el `PATH`. Verificá con `ML --version`. El binario incluye la guía y sus imágenes.
+
+Si preferís compilar desde GitHub, instalá Rust estable y las herramientas nativas de compilación de tu plataforma y ejecutá `cargo install --locked --git https://github.com/fedeclavero/mercadolibre-mcp`.
+
+**Actualización desde 0.2.x.** Ejecutá `ML install --client all` y volvé a abrir tu cliente. Si configuraste el MCP para un proyecto con `--scope project`, repetí la instalación con ese alcance. Se reutilizan las credenciales, los tokens y los datos guardados. Si `ML doctor` confirma la cuenta, podés ir directo al paso 4.
 
 ## 2. Crear la aplicación de Mercado Libre
 
-Ejecuta `ML devcenter --country ar --open` (países: ar br mx cl co uy pe ec ve): imprime y abre el DevCenter con los pasos exactos. Resumen: entra con la cuenta titular, "Crear nueva aplicación", URI de redirección HTTPS `https://localhost:8765/callback`, marca "Use PKCE", elige "Lectura y escritura" en todos los permisos funcionales (y acceso offline si se ofrece), no marques Tópicos, guarda y copia el APP ID y el Client Secret. La documentación oficial exige HTTPS en la URI de redirección pero no aclara si acepta localhost; si el formulario la rechaza, prueba `https://127.0.0.1:8765/callback`, `https://www.mercadolibre.com.ar/` o una URL HTTPS de un dominio tuyo y usa esa misma en el paso siguiente. No pegues el secreto en un chat si no se lo pides a tu agente de confianza para este fin. Si no sabés o te resulta confuso crear la app, tu agente de IA puede usar el navegador para ingresar al DevCenter y tildar todos los permisos de lectura y escritura automáticamente (Plug & Play total).
+Ejecuta `ML devcenter --country ar --open` (países: ar br mx cl co uy pe ec ve): imprime y abre el DevCenter con los pasos exactos. Resumen: entra con la cuenta titular, "Crear nueva aplicación", URI de redirección HTTPS `https://localhost:8765/callback`, marca "Use PKCE", habilita los permisos funcionales que necesitás y el acceso offline si aparece. Elegí "Solo lectura" para consultas y "Lectura y escritura" en los grupos que vas a modificar, no marques Tópicos, guarda y copia el APP ID y el Client Secret. La documentación oficial exige HTTPS en la URI de redirección pero no aclara si acepta localhost; si el formulario la rechaza, prueba `https://127.0.0.1:8765/callback`, `https://www.mercadolibre.com.ar/` o una URL HTTPS de un dominio tuyo y usa esa misma en el paso siguiente. Tené el secreto a mano para ingresarlo en el paso siguiente.
 
 ## 3. Guardar credenciales y autorizar
 
 ```text
-ML setup --client-id APP_ID --client-secret-stdin --redirect-uri https://localhost:8765/callback --country ar
+ML setup --client-id APP_ID --redirect-uri https://localhost:8765/callback --country ar
 ML authorize
 ML doctor
 ```
 
-`setup` guarda la configuración con permisos privados (el secreto no se muestra) y también acepta las variables `MELI_CLIENT_ID`, `MELI_CLIENT_SECRET`, `MELI_REDIRECT_URI`, `MELI_COUNTRY` y `MELI_PKCE`. `authorize` abre el navegador, captura el permiso en `https://localhost` (el navegador avisa del certificado de localhost: es normal; Avanzado y Continuar) y guarda el token. Si la URI no es local o el puerto está ocupado, usa `ML authorize --start`, autoriza, copia la URL completa de la barra de direcciones y ejecuta `ML authorize --finish --callback-url '<URL>'`. `doctor` revisa todo y dice el próximo paso.
+`setup` pide el Client Secret sin mostrarlo y guarda la configuración con permisos privados y también acepta las variables `MELI_CLIENT_ID`, `MELI_CLIENT_SECRET`, `MELI_REDIRECT_URI`, `MELI_COUNTRY` y `MELI_PKCE`. `authorize` abre el navegador, captura el permiso en `https://localhost` (el navegador avisa del certificado de localhost: es normal; Avanzado y Continuar) y guarda el token. Si la URI no es local o el puerto está ocupado, usa `ML authorize --start`, autoriza, copia la URL completa de la barra de direcciones y ejecuta `ML authorize --finish --callback-url '<URL>'`. `doctor` revisa todo y dice el próximo paso.
 
 ## 4. Registrar en tu cliente de IA
 
@@ -30,7 +43,7 @@ Por defecto el servidor puede leer y escribir. Para solo consultas: `ML mode rea
 
 ## 6. ChatGPT
 
-ChatGPT web necesita un servidor MCP remoto por HTTPS (no acepta stdio local) y su formulario ofrece OAuth o "sin autenticación". Rutas descritas en [AGENT_INSTALL.md](AGENT_INSTALL.md): el túnel seguro de OpenAI o `ML serve --transport http` con un túnel HTTPS y el token en la ruta (`ML http-token --public-url <URL>`). El servidor HTTP escucha solo en 127.0.0.1 y rechaza pedidos sin token. Codex (CLI, app e IDE) funciona con `ML install --client codex`.
+En ChatGPT web, agregá el servidor mediante Secure MCP Tunnel o un endpoint HTTPS con Streamable HTTP, según los permisos de tu espacio. La [guía para agentes](AGENT_INSTALL.md#chatgpt) detalla ambas conexiones. Codex (CLI, app e IDE) usa la instalación local con `ML install --client codex`.
 
 ## Archivos privados y limitaciones
 
