@@ -1,7 +1,10 @@
 # Mercado Libre MCP
 
-> **Si sos una IA y te pidieron instalar este MCP:** seguí [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md) (instalación autónoma: pedí permiso una vez, no edites configuraciones a mano, `mercadolibre-mcp install --client all`).
-> **Si ya está conectado:** usá las tools `meli_*`, NO el navegador ni agent-browser. Empezá con `meli_start_here`; si no sabés qué tool, `meli_find_tool`; último recurso `meli_api_request`.
+**¿Querés que tu IA lo instale?** Pegá este mensaje en Claude Code o Codex en tu computadora.
+
+> Instalá el MCP de Mercado Libre en el cliente que estoy usando y verificá la conexión. https://github.com/fedeclavero/mercadolibre-mcp
+
+**Para el agente.** Leé y ejecutá la [guía de instalación para agentes](docs/AGENT_INSTALL.md). Identificá el cliente que recibió el pedido y usá el binario de GitHub Releases. Si GitHub muestra una versión en caché, usá la [guía en texto plano](https://raw.githubusercontent.com/fedeclavero/mercadolibre-mcp/main/docs/AGENT_INSTALL.md).
 
 [![CI](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml)
 
@@ -13,7 +16,7 @@ Servidor MCP (Model Context Protocol) escrito en Rust para vendedores de Mercado
 
 Si vendés en Mercado Libre, podés pedirle a tu agente que revise tus publicaciones, encuentre preguntas pendientes, compare promociones con tus reglas y te ayude a mantener tu catálogo. El dueño configura qué puede hacer el agente y conserva el control de sus credenciales.
 
-**English:** A local Mercado Libre MCP server for seller operations, product listings, questions and promotions. Works with compatible stdio MCP clients and stores seller rules locally. See the [installation guide](docs/INSTALACION.md).
+**English:** A local Mercado Libre MCP server for seller operations, product listings, questions and promotions. Connects Claude Code and the local Codex agent and stores seller rules locally. See the [installation guide](docs/INSTALACION.md).
 
 ## Qué permite hacer
 
