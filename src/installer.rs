@@ -20,7 +20,7 @@ const LEGACY_SOURCE: &str = "git+https://github.com/fedeclavero/mercadolibre-mcp
 
 #[derive(Args)]
 pub(crate) struct InstallArgs {
-    /// Cliente MCP (repetible, separado por comas, o all para detectar).
+    /// Claude Code (claude-code), Codex (codex) o all para detectar ambos.
     #[arg(long)]
     client: Vec<String>,
     /// Guardar el servidor en la configuración del usuario o del proyecto.
@@ -57,39 +57,15 @@ enum Scope {
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Client {
     ClaudeCode,
-    ClaudeDesktop,
     Codex,
-    Gemini,
-    Cursor,
-    Windsurf,
-    VsCode,
-    OpenCode,
-    Antigravity,
-    Cline,
-    Zed,
 }
 
-const CLIENTS: [(Client, &str, &str); 11] = [
-    (Client::ClaudeCode, "claude-code", "Claude Code"),
-    (Client::ClaudeDesktop, "claude-desktop", "Claude Desktop"),
-    (Client::Codex, "codex", "Codex (CLI, app e IDE)"),
-    (Client::Gemini, "gemini-cli", "Gemini CLI"),
-    (Client::Cursor, "cursor", "Cursor"),
-    (Client::Windsurf, "windsurf", "Windsurf"),
-    (Client::VsCode, "vscode", "VS Code (Copilot)"),
-    (Client::OpenCode, "opencode", "OpenCode"),
-    (Client::Antigravity, "antigravity", "Antigravity"),
-    (Client::Cline, "cline", "Cline"),
-    (Client::Zed, "zed", "Zed"),
-];
+const CLIENTS: [Client; 2] = [Client::ClaudeCode, Client::Codex];
 
 struct Environment {
-    home: PathBuf,
-    config: PathBuf,
-    appdata: PathBuf,
+    claude_override: Option<PathBuf>,
     codex: PathBuf,
-    cline: Option<PathBuf>,
-    os: &'static str,
+    home: PathBuf,
 }
 
 impl Environment {
@@ -98,21 +74,10 @@ impl Environment {
             "No se encontró tu carpeta personal. Próximo paso: revisá la configuración de tu usuario.",
         )?;
         Ok(Self {
-            config: env_path("XDG_CONFIG_HOME").unwrap_or_else(|| home.join(".config")),
-            appdata: env_path("APPDATA").unwrap_or_else(|| home.join("AppData/Roaming")),
+            claude_override: env_path("CLAUDE_CONFIG_DIR"),
             codex: env_path("CODEX_HOME").unwrap_or_else(|| home.join(".codex")),
-            cline: env_path("CLINE_MCP_SETTINGS_PATH"),
             home,
-            os: env::consts::OS,
         })
-    }
-
-    fn desktop_config(&self) -> PathBuf {
-        match self.os {
-            "windows" => self.appdata.clone(),
-            "macos" => self.home.join("Library/Application Support"),
-            _ => self.config.clone(),
-        }
     }
 }
 
@@ -124,207 +89,55 @@ fn env_path(name: &str) -> Option<PathBuf> {
 
 impl Client {
     fn id(self) -> &'static str {
-        CLIENTS
-            .iter()
-            .find(|entry| entry.0 == self)
-            .map_or("", |entry| entry.1)
-    }
-
-    fn label(self) -> &'static str {
-        CLIENTS
-            .iter()
-            .find(|entry| entry.0 == self)
-            .map_or("", |entry| entry.2)
-    }
-
-    fn container(self) -> &'static str {
         match self {
-            Self::Codex => "mcp_servers",
-            Self::VsCode => "servers",
-            Self::OpenCode => "mcp",
-            Self::Zed => "context_servers",
-            _ => "mcpServers",
+            Self::ClaudeCode => "claude-code",
+            Self::Codex => "codex",
         }
     }
 
-    fn project_path(self) -> Option<&'static str> {
+    fn label(self) -> &'static str {
         match self {
-            Self::ClaudeCode => Some(".mcp.json"),
-            Self::Codex => Some(".codex/config.toml"),
-            Self::Gemini => Some(".gemini/settings.json"),
-            Self::Cursor => Some(".cursor/mcp.json"),
-            Self::Windsurf => Some(".devin/mcp_config.json"),
-            Self::VsCode => Some(".vscode/mcp.json"),
-            Self::OpenCode => Some("opencode.json"),
-            Self::Antigravity => Some(".agents/mcp_config.json"),
-            Self::ClaudeDesktop | Self::Cline | Self::Zed => None,
+            Self::ClaudeCode => "Claude Code",
+            Self::Codex => "Codex",
         }
     }
 
     fn user_path(self, env: &Environment) -> PathBuf {
         match self {
-            Self::ClaudeCode => env.home.join(".claude.json"),
-            Self::ClaudeDesktop => {
-                let base = if matches!(env.os, "windows" | "macos") {
-                    env.desktop_config()
-                } else {
-                    env.home.join(".config")
-                };
-                base.join("Claude/claude_desktop_config.json")
-            }
+            Self::ClaudeCode => env
+                .claude_override
+                .as_ref()
+                .unwrap_or(&env.home)
+                .join(".claude.json"),
             Self::Codex => env.codex.join("config.toml"),
-            Self::Gemini => env.home.join(".gemini/settings.json"),
-            Self::Cursor => env.home.join(".cursor/mcp.json"),
-            Self::Windsurf => {
-                let base = if env.os == "windows" {
-                    &env.appdata
-                } else {
-                    &env.config
-                };
-                base.join("devin/mcp_config.json")
-            }
-            Self::VsCode => env.desktop_config().join("Code/User/mcp.json"),
-            Self::OpenCode => {
-                let base = if env.os == "windows" {
-                    env.home.join(".config/opencode")
-                } else {
-                    env.config.join("opencode")
-                };
-                let json = base.join("opencode.json");
-                let jsonc = base.join("opencode.jsonc");
-                if jsonc.is_file() && !json.exists() {
-                    jsonc
-                } else {
-                    json
-                }
-            }
-            Self::Antigravity => env.home.join(".gemini/config/mcp_config.json"),
-            Self::Cline => env.cline.clone().unwrap_or_else(|| {
-                env.home
-                    .join(".cline/data/settings/cline_mcp_settings.json")
-            }),
-            Self::Zed => {
-                if env.os == "windows" {
-                    env.appdata.join("Zed/settings.json")
-                } else {
-                    env.home.join(".config/zed/settings.json")
-                }
-            }
-        }
-    }
-
-    fn extra_paths(self, env: &Environment) -> Vec<PathBuf> {
-        match self {
-            Self::Windsurf => vec![env.home.join(".codeium/windsurf/mcp_config.json")],
-            Self::VsCode => vec![env.desktop_config().join("Code - Insiders/User/mcp.json")],
-            Self::Cline => ["Code", "Code - Insiders"]
-                .iter()
-                .map(|name| {
-                    env.desktop_config().join(name).join(
-                        "User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json",
-                    )
-                })
-                .collect(),
-            _ => Vec::new(),
         }
     }
 
     fn detected(self, env: &Environment) -> bool {
-        let path = self.user_path(env);
-        if path.is_file() || self.extra_paths(env).iter().any(|p| p.is_file()) {
-            return true;
-        }
-        let executable = match self {
-            Self::ClaudeCode => "claude",
-            Self::ClaudeDesktop => "",
-            Self::Gemini => "gemini",
-            Self::VsCode => "code",
-            Self::OpenCode => "opencode",
-            Self::Antigravity => "antigravity",
-            _ => self.id(),
-        };
-        if !executable.is_empty() && which::which(executable).is_ok() {
+        if self.user_path(env).is_file() {
             return true;
         }
         match self {
-            Self::ClaudeCode => env.home.join(".claude").is_dir(),
-            Self::Gemini => false,
-            Self::Antigravity => {
-                env.home.join(".gemini/antigravity").is_dir()
-                    || env.home.join(".gemini/antigravity-cli").is_dir()
-                    || which::which("agy").is_ok()
-                    || parent_is_dir(&path)
+            Self::ClaudeCode => {
+                which::which("claude").is_ok()
+                    || env
+                        .claude_override
+                        .as_ref()
+                        .map_or_else(|| env.home.join(".claude").is_dir(), |path| path.is_dir())
             }
-            Self::Windsurf => env.home.join(".codeium/windsurf").is_dir() || parent_is_dir(&path),
-            Self::VsCode => {
-                parent_is_dir(&path)
-                    || self.extra_paths(env).iter().any(|p| parent_is_dir(p))
-                    || which::which("code-insiders").is_ok()
-            }
-            Self::Cline => {
-                path.parent().is_some_and(parent_is_dir)
-                    || self
-                        .extra_paths(env)
-                        .iter()
-                        .any(|p| p.parent().is_some_and(parent_is_dir))
-            }
-            _ => parent_is_dir(&path),
+            Self::Codex => which::which("codex").is_ok() || env.codex.is_dir(),
         }
     }
 
-    fn user_paths(self, env: &Environment) -> Vec<PathBuf> {
-        let primary = self.user_path(env);
-        let extras = self.extra_paths(env);
-        // VS Code Insiders can be installed without the stable build.
-        if self == Self::VsCode
-            && !parent_is_dir(&primary)
-            && let Some(insiders) = extras.first().filter(|path| parent_is_dir(path))
-        {
-            return vec![insiders.clone()];
-        }
-        extras
-            .iter()
-            .filter(|p| p.exists() && **p != primary)
-            .cloned()
-            .fold(vec![primary.clone()], |mut paths, path| {
-                paths.push(path);
-                paths
-            })
-    }
-
-    fn target_paths(self, env: &Environment, scope: Scope, project: &Path) -> Result<Vec<PathBuf>> {
+    fn target_path(self, env: &Environment, scope: Scope, project: &Path) -> PathBuf {
         match scope {
-            Scope::User => Ok(self.user_paths(env)),
-            Scope::Project => self.project_path().map(|p| vec![project.join(p)]).ok_or_else(|| {
-                anyhow!("{} no tiene configuración por proyecto documentada. Próximo paso: usá --scope user.", self.label())
+            Scope::User => self.user_path(env),
+            Scope::Project => project.join(match self {
+                Self::ClaudeCode => ".mcp.json",
+                Self::Codex => ".codex/config.toml",
             }),
         }
     }
-
-    fn json_entry(self, spec: &ServerSpec) -> Value {
-        let mut entry = match self {
-            Self::OpenCode => json!({"type": "local", "command": spec.argv(), "enabled": true}),
-            Self::ClaudeCode | Self::Cursor | Self::VsCode => {
-                json!({"type": "stdio", "command": spec.command, "args": ["serve"]})
-            }
-            _ => json!({"command": spec.command, "args": ["serve"]}),
-        };
-        if let Some(dir) = &spec.state_dir {
-            let key = if self == Self::OpenCode {
-                "environment"
-            } else {
-                "env"
-            };
-            entry[key] = json!({"MELI_MCP_STATE_DIR": dir});
-        } else if self == Self::Zed {
-            entry["env"] = json!({});
-        }
-        entry
-    }
-}
-
-fn parent_is_dir(path: &Path) -> bool {
-    path.parent().is_some_and(Path::is_dir)
 }
 
 struct ServerSpec {
@@ -490,13 +303,7 @@ fn cst_value(value: &Value) -> CstInputValue {
     }
 }
 
-fn patch_json(
-    client: Client,
-    filename: &Path,
-    raw: &str,
-    spec: &ServerSpec,
-    force: bool,
-) -> Result<Edit> {
+fn patch_json(filename: &Path, raw: &str, spec: &ServerSpec, force: bool) -> Result<Edit> {
     let options = jsonc_options();
     let invalid = || {
         anyhow!(
@@ -512,7 +319,7 @@ fn patch_json(
         "{} no tiene un objeto JSON en la raíz. Próximo paso: corregí el archivo y reintentá.",
         filename.display()
     );
-    let key = client.container();
+    let key = "mcpServers";
     ensure!(
         current[key].is_null() || current[key].is_object(),
         "En {} la clave \"{key}\" no es un objeto. Próximo paso: corregí el archivo y reintentá.",
@@ -521,7 +328,10 @@ fn patch_json(
 
     let entry = current[key].get(&spec.name);
     let exists = entry.is_some_and(|entry| !entry.is_null());
-    let desired = client.json_entry(spec);
+    let mut desired = json!({"type": "stdio", "command": spec.command, "args": ["serve"]});
+    if let Some(dir) = &spec.state_dir {
+        desired["env"] = json!({"MELI_MCP_STATE_DIR": dir});
+    }
     let foreign = entry.filter(|other| !other.is_null()).is_some_and(|other| {
         let (command, args) = json_invocation(other);
         command != spec.command && !our_invocation(command, args.into_iter())
@@ -544,12 +354,10 @@ fn patch_json(
         .as_object()
         .context("La entrada de configuración debe ser un objeto.")?;
     for (name, value) in fields {
-        if expected[name] == *value
-            || (client == Client::OpenCode && name == "enabled" && expected[name].is_boolean())
-        {
+        if expected[name] == *value {
             continue;
         }
-        if matches!(name.as_str(), "env" | "environment")
+        if name == "env"
             && let (Some(old), Some(values)) = (expected[name].as_object_mut(), value.as_object())
         {
             let node = server.object_value_or_set(name);
@@ -781,7 +589,7 @@ fn plan_file(
     let edit = if client == Client::Codex {
         patch_toml(path, text, spec, force)?
     } else {
-        patch_json(client, path, text, spec, force)?
+        patch_json(path, text, spec, force)?
     };
     let report = |status| Outcome::new(client, path.to_path_buf(), status);
     Ok(match edit {
@@ -817,19 +625,15 @@ fn selected_clients(raw: &[String], env: &Environment) -> Result<(Vec<Client>, V
         .filter(|s| !s.is_empty())
         .collect();
     if selection.is_empty() || selection.iter().any(|id| id == "all") {
-        let (found, missing): (Vec<_>, Vec<_>) = CLIENTS
-            .into_iter()
-            .partition(|(client, _, _)| client.detected(env));
-        return Ok((
-            found.into_iter().map(|entry| entry.0).collect(),
-            missing.into_iter().map(|entry| entry.1).collect(),
-        ));
+        let (found, missing): (Vec<_>, Vec<_>) =
+            CLIENTS.into_iter().partition(|client| client.detected(env));
+        return Ok((found, missing.into_iter().map(Client::id).collect()));
     }
     let mut chosen = Vec::new();
     for id in &selection {
-        let (client, _, _) = CLIENTS
+        let client = CLIENTS
             .iter()
-            .find(|entry| entry.1 == id)
+            .find(|entry| entry.id() == id)
             .with_context(|| {
                 format!(
                     "Cliente desconocido: {id}. Próximo paso: usá uno de {} o `all`.",
@@ -846,7 +650,7 @@ fn selected_clients(raw: &[String], env: &Environment) -> Result<(Vec<Client>, V
 fn client_choices() -> String {
     CLIENTS
         .iter()
-        .map(|entry| entry.1)
+        .map(|client| client.id())
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -888,6 +692,22 @@ async fn handshake(spec: &ServerSpec) -> Result<Value> {
 }
 
 impl InstallArgs {
+    pub(crate) fn for_clients(client: Vec<String>) -> Self {
+        Self {
+            client,
+            scope: Scope::User,
+            project_dir: None,
+            name: DEFAULT_NAME.to_owned(),
+            command: None,
+            source: None,
+            _local: false,
+            dry_run: false,
+            force: false,
+            no_verify_launch: false,
+            json: false,
+        }
+    }
+
     pub(crate) async fn run(self) -> Result<ExitCode> {
         let env = Environment::current()?;
         ensure!(
@@ -924,15 +744,14 @@ impl InstallArgs {
         let mut entries = Vec::new();
 
         for client in &clients {
-            for path in client.target_paths(&env, self.scope, &project)? {
-                entries.push(match plan_file(*client, &path, &spec, self.force) {
-                    Ok(entry) => entry,
-                    Err(error) => (
-                        Outcome::new(*client, path, Status::Error).with_detail(file_error(error)),
-                        None,
-                    ),
-                });
-            }
+            let path = client.target_path(&env, self.scope, &project);
+            entries.push(match plan_file(*client, &path, &spec, self.force) {
+                Ok(entry) => entry,
+                Err(error) => (
+                    Outcome::new(*client, path, Status::Error).with_detail(file_error(error)),
+                    None,
+                ),
+            });
         }
         let mut launch = None;
         let mut launch_failed = false;
@@ -972,11 +791,11 @@ impl InstallArgs {
             .map(|(outcome, _)| outcome)
             .partition(|outcome| outcome.status.success());
         if clients.is_empty() {
-            next_steps.push(format!("No se detectó ningún cliente MCP. Preguntale al usuario qué usa y ejecutá `mercadolibre-mcp install --client <nombre>` (nombres: {}).", client_choices()));
+            next_steps.push(format!("No se detectó Claude Code ni Codex. Abrí tu cliente una vez y ejecutá `mercadolibre-mcp install --client <nombre>` (nombres: {}).", client_choices()));
         }
         next_steps.extend(problems.iter().filter_map(|problem| problem.detail.clone()));
         if !installed.is_empty() && !self.dry_run && !launch_failed {
-            next_steps.push("Pedile al usuario que cierre y vuelva a abrir por completo su cliente de IA y probá llamando a la tool meli_start_here y luego meli_status.".into());
+            next_steps.push("Cerrá y volvé a abrir tu cliente. Pedile que llame meli_start_here y después meli_status.".into());
         }
         if let Some(message) = launch.as_ref().and_then(|launch| launch["error"].as_str()) {
             next_steps.push(message.into());
@@ -1052,18 +871,16 @@ fn file_error(error: anyhow::Error) -> String {
 pub(crate) fn installed_status() -> Result<Vec<(&'static str, bool)>> {
     let env = Environment::current()?;
     let mut entries = Vec::new();
-    for (client, _, label) in CLIENTS {
+    for client in CLIENTS {
         if !client.detected(&env) {
             continue;
         }
-        let found = client.user_paths(&env).iter().any(|path| {
-            let Ok(Some(text)) = read_file(path) else {
-                return false;
-            };
+        let path = client.user_path(&env);
+        let found = read_file(&path).ok().flatten().is_some_and(|text| {
             let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
             if client == Client::Codex {
                 return text.parse::<DocumentMut>().ok().is_some_and(|doc| {
-                    doc.get(client.container())
+                    doc.get("mcp_servers")
                         .and_then(Item::as_table_like)
                         .and_then(|table| table.get(DEFAULT_NAME))
                         .is_some()
@@ -1071,9 +888,9 @@ pub(crate) fn installed_status() -> Result<Vec<(&'static str, bool)>> {
             }
             parse_to_serde_value::<Value>(text, &jsonc_options())
                 .ok()
-                .is_some_and(|value| !value[client.container()][DEFAULT_NAME].is_null())
+                .is_some_and(|value| !value["mcpServers"][DEFAULT_NAME].is_null())
         });
-        entries.push((label, found));
+        entries.push((client.label(), found));
     }
     Ok(entries)
 }
@@ -1093,8 +910,8 @@ mod tests {
     #[test]
     fn all_clients_write_valid_configuration_idempotently() -> Result<()> {
         let dir = tempfile::tempdir()?;
-        for (client, id, _) in CLIENTS {
-            let path = dir.path().join(id);
+        for client in CLIENTS {
+            let path = dir.path().join(client.id());
             let (mut outcome, update) = plan_file(client, &path, &spec(), false)?;
             assert!(outcome.status == Status::Created);
             update.context("no config update")?.apply(&mut outcome)?;
@@ -1111,7 +928,7 @@ mod tests {
         let path = dir.path().join("mcp.json");
         let original = r#"{
     // don't discard comments
-    "servers": {
+    "mcpServers": {
         "mercadolibre": {
             "command": "uvx",
             "args": ["--from", "git+https://github.com/fedeclavero/mercadolibre-mcp", "mercadolibre-mcp", "serve"],
@@ -1121,7 +938,7 @@ mod tests {
     },
 }"#;
         fs::write(&path, original)?;
-        let (mut outcome, update) = plan_file(Client::VsCode, &path, &spec(), false)?;
+        let (mut outcome, update) = plan_file(Client::ClaudeCode, &path, &spec(), false)?;
         assert!(outcome.status == Status::Updated);
         update.context("no config update")?.apply(&mut outcome)?;
         assert!(outcome.verified);
@@ -1132,16 +949,19 @@ mod tests {
         let text = fs::read_to_string(path)?;
         assert!(text.contains("// don't discard comments"));
         let parsed: Value = parse_to_serde_value(&text, &jsonc_options())?;
-        assert_eq!(parsed["servers"][DEFAULT_NAME]["command"], spec().command);
         assert_eq!(
-            parsed["servers"][DEFAULT_NAME]["env"]["MY_SETTING"],
+            parsed["mcpServers"][DEFAULT_NAME]["command"],
+            spec().command
+        );
+        assert_eq!(
+            parsed["mcpServers"][DEFAULT_NAME]["env"]["MY_SETTING"],
             "literal ,}"
         );
         assert_eq!(
-            parsed["servers"][DEFAULT_NAME]["env"]["MELI_MCP_STATE_DIR"],
+            parsed["mcpServers"][DEFAULT_NAME]["env"]["MELI_MCP_STATE_DIR"],
             "/datos/meli"
         );
-        assert_eq!(parsed["servers"]["other"]["command"], "other://example");
+        assert_eq!(parsed["mcpServers"]["other"]["command"], "other://example");
         Ok(())
     }
 
@@ -1195,10 +1015,10 @@ enabled_tools = ["meli_status"]
         let path = Path::new("settings.json");
         let old = r#"{"mcpServers":{"mercadolibre":{"serverUrl":"https://example.org/mcp","headers":{"Authorization":"Bearer test"}}}}"#;
         assert!(matches!(
-            patch_json(Client::Gemini, path, old, &spec(), false)?,
+            patch_json(path, old, &spec(), false)?,
             Edit::Conflict
         ));
-        let Edit::Write { text, .. } = patch_json(Client::Gemini, path, old, &spec(), true)? else {
+        let Edit::Write { text, .. } = patch_json(path, old, &spec(), true)? else {
             bail!("expected replacement");
         };
         let parsed: Value = parse_to_serde_value(&text, &jsonc_options())?;
@@ -1211,7 +1031,7 @@ enabled_tools = ["meli_status"]
     fn keeps_concurrent_changes_when_planned_snapshot_is_stale() -> Result<()> {
         let dir = tempfile::tempdir()?;
         let path = dir.path().join("mcp.json");
-        let (mut outcome, update) = plan_file(Client::VsCode, &path, &spec(), false)?;
+        let (mut outcome, update) = plan_file(Client::ClaudeCode, &path, &spec(), false)?;
         fs::write(&path, r#"{"new-setting":true}"#)?;
         assert!(
             update

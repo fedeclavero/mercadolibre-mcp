@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+- Instalador para Windows 11 por usuario. El ejecutable incorpora el runtime de Visual C++ y el ZIP incluye `Instalar.cmd`.
+- Instalación y diagnóstico para Claude Code y Codex. Configuración local por stdio.
+- El asistente guía al vendedor para conceder todos los permisos funcionales de Mercado Libre y trabajar con acceso completo.
+
 ## 0.3.0
 
 - Servidor y CLI en Rust con el SDK oficial de MCP. Conserva 48 herramientas, recursos, recetas, prompts, OAuth y el estado local de 0.2.x.

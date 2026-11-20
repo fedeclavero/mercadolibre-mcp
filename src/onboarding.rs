@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::{Result, bail};
-use clap::{Args, ValueEnum};
+use clap::Args;
 use serde_json::{Value, json};
 
 use crate::{
@@ -15,21 +15,6 @@ use crate::{
 
 const MANUAL_START: &str = "Abrí authorize_url (si no se abrió), pedile al usuario que inicie sesión con la cuenta principal y autorice, y que te pase la URL completa de la barra de direcciones; luego ejecutá `mercadolibre-mcp authorize --finish --callback-url '<URL>'`.";
 const FINISH_HINT: &str = "Falta la URL de retorno. Próximo paso: ejecutá `mercadolibre-mcp authorize --finish --callback-url '<URL completa>'`.";
-
-#[derive(Clone, Copy, ValueEnum)]
-pub enum Mode {
-    Full,
-    ReadOnly,
-}
-
-impl Mode {
-    fn stored(self) -> &'static str {
-        match self {
-            Self::Full => "full",
-            Self::ReadOnly => "read_only",
-        }
-    }
-}
 
 #[derive(Args)]
 pub struct SetupArgs {
@@ -50,8 +35,6 @@ pub struct SetupArgs {
     pkce: bool,
     #[arg(long, overrides_with = "pkce")]
     no_pkce: bool,
-    #[arg(long)]
-    mode: Option<Mode>,
     #[arg(long)]
     pub json: bool,
 }
@@ -137,7 +120,7 @@ impl SetupArgs {
         }
         let uri = auth::validate_redirect(&redirect)?;
 
-        let (mode, removed) = {
+        let removed = {
             let _lock = lock("token").await?;
             let previous = load_private("config.json").unwrap_or_else(|_| json!({}));
             let mut config = previous.clone();
@@ -146,8 +129,8 @@ impl SetupArgs {
             config["redirect_uri"] = json!(redirect);
             config["country"] = json!(country);
             config["pkce"] = json!(pkce);
-            if let Some(mode) = self.mode {
-                config["mode"] = json!(mode.stored());
+            if let Some(config) = config.as_object_mut() {
+                config.remove("mode");
             }
 
             // If the app changed, make its old token inaccessible before writing the new config.
@@ -166,14 +149,7 @@ impl SetupArgs {
                 auth::remove_state_file("pending-auth.json")?;
             }
             write_private("config.json", &config)?;
-            (
-                config["mode"]
-                    .as_str()
-                    .filter(|value| !value.is_empty())
-                    .unwrap_or("full")
-                    .to_owned(),
-                removed,
-            )
+            removed
         };
         let next_step = format!(
             "Ejecutá `{CLI} authorize`{}",
@@ -190,7 +166,7 @@ impl SetupArgs {
                 "country": country,
                 "redirect_uri": redirect,
                 "pkce": pkce,
-                "mode": mode,
+                "mode": "full",
                 "authorization_removed": removed,
                 "next_step": next_step
             }),
@@ -328,43 +304,6 @@ fn authorized(as_json: bool) -> Result<()> {
 }
 
 #[derive(Args)]
-pub struct ModeArgs {
-    mode: Option<Mode>,
-    #[arg(long)]
-    pub json: bool,
-}
-
-impl ModeArgs {
-    pub async fn run(self) -> Result<()> {
-        let _lock = lock("token").await?;
-        let mut config = load_private("config.json")?;
-        if let Some(mode) = self.mode {
-            config["mode"] = json!(mode.stored());
-            write_private("config.json", &config)?;
-        }
-        let mode = if config["mode"] == "read_only" {
-            Mode::ReadOnly
-        } else {
-            Mode::Full
-        };
-        let message = match mode {
-            Mode::Full => "lectura y escritura (completo)",
-            Mode::ReadOnly => "SOLO LECTURA",
-        };
-        let note = if self.mode.is_some() {
-            "Reiniciá tu cliente de IA para que el cambio se aplique."
-        } else {
-            "Para cambiarlo: `mode full` o `mode read-only`."
-        };
-        emit(
-            self.json,
-            &json!({"ok": true, "mode": mode.stored(), "note": note}),
-            &[&format!("Modo: {message}. {note}")],
-        )
-    }
-}
-
-#[derive(Args)]
 pub struct DevcenterArgs {
     #[arg(long, default_value = "ar", value_parser = auth::parse_country)]
     country: String,
@@ -400,11 +339,11 @@ impl DevcenterArgs {
             "7. Marcá \"Use PKCE\" (recomendado).",
             "8. NO marques \"Device Grant\".",
             concat!(
-                "9. Scopes y permisos funcionales. Usuarios ya viene activo. Habilitá solo los grupos que necesitás: ",
-                "Publicación y sincronización, Comunicación pre y postventa, Publicidad, Métricas del negocio, ",
-                "Ventas y envíos, Promociones, cupones y descuentos, y Facturación. Elegí \"Solo lectura\" para consultas ",
-                "y \"Lectura y escritura\" en los grupos donde el agente deba hacer cambios. Marcá \"acceso offline\" ",
-                "(offline_access) si aparece en el formulario para renovar la conexión."
+                "9. Habilitá todos los permisos funcionales de Mercado Libre. Usuarios ya viene activo. ",
+                "Activá Publicación y sincronización, Comunicación pre y postventa, Publicidad, Métricas del negocio, ",
+                "Ventas y envíos, Promociones, cupones y descuentos, y Facturación. ",
+                "Elegí \"Lectura y escritura\" en cada grupo que ofrezca ese nivel. ",
+                "Marcá \"acceso offline\" (offline_access) si aparece para que la conexión se renueve sola."
             ),
             "10. Tópicos: no marques ninguno (este servidor no recibe notificaciones). Si el formulario igual exige una URL de notificaciones, poné la misma URI de redirección.",
             "11. Guardá. La app aparece en \"Mis aplicaciones\": copiá el APP ID (Client ID) y el Client Secret (Secret Key; mostralo con el ojo/\"Mostrar\").",
@@ -438,6 +377,110 @@ impl DevcenterArgs {
             &lines,
         )
     }
+}
+
+pub(crate) async fn guided_install() -> Result<std::process::ExitCode> {
+    use std::process::ExitCode;
+
+    println!(
+        "Mercado Libre MCP
+"
+    );
+    println!("Instalá tu cliente, iniciá sesión y cerralo antes de continuar.");
+    println!("1. Claude Code");
+    println!("2. Codex en la app de ChatGPT");
+    println!("3. Ambos");
+    println!("0. Salir");
+    let clients = loop {
+        match prompt("Elegí una opción: ")?.trim() {
+            "1" => break vec!["claude-code".to_owned()],
+            "2" => break vec!["codex".to_owned()],
+            "3" => break vec!["claude-code".to_owned(), "codex".to_owned()],
+            "0" | "" => return Ok(ExitCode::SUCCESS),
+            _ => println!("Ingresá 1, 2, 3 o 0."),
+        }
+    };
+
+    let config = load_private("config.json").ok();
+    let configured = config.as_ref().is_some_and(|config| {
+        ["client_id", "client_secret", "redirect_uri", "country"]
+            .iter()
+            .all(|field| auth::config_text(config, field).is_ok())
+    });
+    if !configured {
+        let country = loop {
+            let input = prompt(&format!("País de tu cuenta ({COUNTRIES}) [ar]: "))?;
+            if input.trim().is_empty() {
+                break "ar".to_owned();
+            }
+            match auth::parse_country(input.trim()) {
+                Ok(country) => break country,
+                Err(error) => println!("{error}"),
+            }
+        };
+        DevcenterArgs {
+            country: country.clone(),
+            redirect_uri: DEFAULT_REDIRECT.to_owned(),
+            open: true,
+            json: false,
+        }
+        .run()
+        .await?;
+        println!("Cuando tengas el APP ID y el Client Secret, ingresalos acá.");
+        SetupArgs {
+            client_id: None,
+            client_secret: None,
+            client_secret_stdin: false,
+            redirect_uri: None,
+            country: Some(country),
+            pkce: false,
+            no_pkce: false,
+            json: false,
+        }
+        .run()
+        .await?;
+    }
+    let token = load_private("token.json").ok();
+    let missing_scopes = token
+        .as_ref()
+        .and_then(auth::oauth_scopes)
+        .is_some_and(|scopes| !auth::missing_scopes(&scopes).is_empty());
+    if missing_scopes {
+        println!(
+            "Tu autorización actual no tiene todos los permisos. Habilitalos en tu aplicación del DevCenter y presioná Enter."
+        );
+        if let Some(country) = config
+            .as_ref()
+            .and_then(|config| config["country"].as_str())
+            && let Ok(url) = auth::devcenter_url(country)
+        {
+            println!("{url}");
+            let _ = open::that_detached(&url);
+        }
+        prompt("Continuar: ")?;
+    }
+    let has_refresh = token
+        .as_ref()
+        .and_then(|token| token["refresh_token"].as_str())
+        .is_some_and(|token| !token.is_empty());
+    if !has_refresh || missing_scopes {
+        AuthorizeArgs {
+            start: false,
+            finish: false,
+            callback_url: None,
+            code: None,
+            no_listen: false,
+            no_open: false,
+            timeout: 300.0,
+            json: false,
+        }
+        .run()
+        .await?;
+    }
+
+    crate::installer::InstallArgs::for_clients(clients)
+        .run()
+        .await
 }
 
 fn input_or_env(input: Option<String>, name: &str) -> Option<String> {

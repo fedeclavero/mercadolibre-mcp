@@ -28,12 +28,40 @@ use url::{Host, Url};
 
 use crate::{
     client::{API_ORIGIN, http_client},
-    state::{ensure_state_dir, load_private, lock, now, write_private},
+    state::{CLI, ensure_state_dir, load_private, lock, now, write_private},
 };
 
 pub const DEFAULT_REDIRECT: &str = "https://localhost:8765/callback";
 pub const COUNTRIES: &str = "ar/br/mx/cl/co/uy/pe/ec/ve";
 pub const PENDING_TTL: u64 = 900;
+const REQUIRED_SCOPES: [&str; 3] = ["read", "write", "offline_access"];
+
+pub(crate) fn oauth_scopes(token: &Value) -> Option<Vec<String>> {
+    let mut scopes: Vec<_> = match &token["scope"] {
+        Value::String(scope) => scope
+            .split(|c: char| c == ',' || c.is_whitespace())
+            .filter(|scope| !scope.is_empty())
+            .map(str::to_owned)
+            .collect(),
+        Value::Array(scopes) => scopes
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_owned)
+            .collect(),
+        _ => return None,
+    };
+    scopes.sort_unstable();
+    scopes.dedup();
+    Some(scopes)
+}
+
+pub(crate) fn missing_scopes(scopes: &[String]) -> Vec<&'static str> {
+    REQUIRED_SCOPES
+        .into_iter()
+        .filter(|required| !scopes.iter().any(|scope| scope == required))
+        .collect()
+}
+
 const PENDING_FILE: &str = "pending-auth.json";
 const BAD_REDIRECT: &str = "La URL de redirección debe ser HTTPS, exacta y sin usuario ni fragmento (el DevCenter exige HTTPS). Próximo paso: usá `https://localhost:8765/callback` o la que registraste en la app.";
 const BAD_CALLBACK: &str = "La URL de retorno no corresponde a la configurada. Próximo paso: copiá la URL completa que quedó en la barra del navegador después de autorizar (empieza con la URL de redirección).";
@@ -312,6 +340,15 @@ impl Attempt {
             .filter(|seconds| seconds.is_finite() && *seconds > 0.0)
             .ok_or_else(|| anyhow!(EXCHANGE_FAILED))?;
         token["expires_at"] = json!(now() + expires_in);
+        if let Some(scopes) = oauth_scopes(&token) {
+            let missing = missing_scopes(&scopes);
+            if !missing.is_empty() {
+                bail!(
+                    "Mercado Libre no concedió estos permisos: {}. Próximo paso: habilitá todos los permisos funcionales en el DevCenter y ejecutá `{CLI} authorize` otra vez.",
+                    missing.join(", ")
+                );
+            }
+        }
         write_private("token.json", &token)?;
         clear_pending()
     }

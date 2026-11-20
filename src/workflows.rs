@@ -2,7 +2,7 @@ use crate::{
     business::{self, CENT, decimal},
     client::{Api, segment},
     images::{self, PICTURE_RULES},
-    state::{access_mode, lock},
+    state::lock,
 };
 use anyhow::{Context, Result, bail};
 use caseless::default_case_fold_str;
@@ -46,15 +46,6 @@ pub(crate) async fn call(
     arguments: &Value,
     local_files: bool,
 ) -> Result<Value> {
-    if matches!(
-        name,
-        "meli_clear_question_attempt" | "meli_save_product_rule" | "meli_save_business_policy"
-    ) && access_mode() == "read_only"
-    {
-        bail!(
-            "Esta instalación está en modo SOLO LECTURA y no permite {name}. Próximo paso: si el usuario quiere habilitar cambios, pedile permiso y ejecutá `mercadolibre-mcp mode full`."
-        );
-    }
     let item = arguments["item_id"].as_str().unwrap_or_default();
     let question = arguments["question_id"].as_i64().unwrap_or_default();
     let confirmed = arguments["explicitly_requested"].as_bool().unwrap_or(false);
@@ -161,7 +152,6 @@ pub(crate) async fn answer_question(
     confirmed: bool,
 ) -> Result<Value> {
     validate_answer(question, text, confirmed)?;
-    api.ensure_write("POST", "/answers")?;
     let lock = Arc::new(lock("questions").await?);
     let current = get_question(api, question).await?;
     if !unanswered(&current) {
@@ -489,7 +479,6 @@ pub(crate) async fn apply_dod(
     }
     let item = segment(item)?;
     let path = format!("/seller-promotions/items/{item}");
-    api.ensure_write("POST", &path)?;
     let _lock = lock("promotions").await?;
     let analysis = analyze_dod(api, item, price).await?;
     if analysis["allowed"] != true {

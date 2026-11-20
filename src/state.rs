@@ -129,32 +129,6 @@ pub fn write_private(name: &str, value: &Value) -> Result<()> {
     write_bytes(name, &serde_json::to_vec(value)?)
 }
 
-pub fn access_mode() -> &'static str {
-    match std::env::var("MELI_MCP_MODE")
-        .unwrap_or_default()
-        .trim()
-        .to_ascii_lowercase()
-        .replace('-', "_")
-        .as_str()
-    {
-        "read_only" | "readonly" | "ro" => return "read_only",
-        "full" | "read_write" | "rw" => return "full",
-        _ => {}
-    }
-    let config = load_private("config.json").unwrap_or_default();
-    match config["mode"]
-        .as_str()
-        .unwrap_or("full")
-        .trim()
-        .to_ascii_lowercase()
-        .replace('-', "_")
-        .as_str()
-    {
-        "read_only" | "readonly" => "read_only",
-        _ => "full",
-    }
-}
-
 pub fn operation_lock(name: &str) -> Result<File> {
     let path = ensure_state_dir()?.join(format!("{name}.lock"));
     let file = private_options()

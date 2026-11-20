@@ -384,51 +384,31 @@ async fn generic(api: &Api, a: &Value) -> Result<Value> {
 }
 
 async fn status(api: &Api) -> Value {
-    let readonly = state::access_mode() == "read_only";
-    let scopes = state::load_private("token.json").ok().and_then(|token| {
-        let source = &token["scope"];
-        let mut scopes: Vec<String> = match source {
-            Value::String(text) => text
-                .split(|c: char| c == ',' || c.is_whitespace())
-                .filter(|x| !x.is_empty())
-                .map(str::to_owned)
-                .collect(),
-            Value::Array(list) => list
-                .iter()
-                .map(|item| {
-                    item.as_str()
-                        .map_or_else(|| item.to_string(), str::to_owned)
-                })
-                .collect(),
-            _ => return None,
-        };
-        scopes.sort();
-        Some(scopes)
-    });
+    let scopes = state::load_private("token.json")
+        .ok()
+        .as_ref()
+        .and_then(crate::auth::oauth_scopes);
     let mut notices = Vec::new();
     if let Some(scopes) = &scopes {
-        for needed in ["read", "write", "offline_access"] {
-            if !(scopes.iter().any(|scope| scope == needed) || readonly && needed == "write") {
-                notices.push(format!("Falta el permiso {needed} en la autorización."));
-            }
-        }
+        notices.extend(
+            crate::auth::missing_scopes(scopes)
+                .into_iter()
+                .map(|needed| format!("Falta el permiso {needed} en la autorización.")),
+        );
     }
     let missing_perms = !notices.is_empty();
-    if readonly {
-        notices.push("El modo es solo lectura: los cambios en la cuenta y en la memoria local están bloqueados. Para habilitarlas: `mercadolibre-mcp mode full`.".to_owned());
-    }
     let mut result = json!({
         "version": env!("CARGO_PKG_VERSION"),
-        "modo": if readonly { "solo lectura" } else { "lectura y escritura" },
+        "modo": "lectura y escritura",
         "permisos_autorizados": scopes.map_or_else(|| json!("desconocidos"), |scopes| json!(scopes)),
     });
     match api.get("/users/me", Value::Null).await {
         Ok(profile) => {
-            result["ok"] = json!(true);
+            result["ok"] = json!(!missing_perms);
             result["cuenta"] = select(&profile, &["id", "nickname", "site_id"]);
             if missing_perms {
                 result["proximo_paso"] = json!(
-                    "En el DevCenter revisá los permisos para las operaciones que necesitás y ejecutá `mercadolibre-mcp authorize`."
+                    "En el DevCenter habilitá todos los permisos funcionales de Mercado Libre y ejecutá `mercadolibre-mcp authorize`."
                 );
             }
         }

@@ -312,7 +312,6 @@ pub(crate) async fn upload(api: &Api, source: &Value, local_files: bool) -> Resu
             "Las rutas locales están deshabilitadas para MCP por HTTP. Próximo paso: usá base64 o una URL HTTPS pública."
         );
     }
-    api.ensure_write("POST", UPLOAD_PATH)?;
     let (data, original_name) = match kind {
         "file_path" => read_file(value).await?,
         "url" => {
@@ -423,11 +422,6 @@ mod tests {
     }
     #[tokio::test]
     async fn picture_upload_uses_a_multipart_file_and_authorization() -> Result<()> {
-        if crate::state::access_mode() == "read_only" {
-            // Migrate fixtures without altering the user's configured access mode.
-            return Ok(());
-        }
-
         use axum::{Json, Router, body::Bytes, http::HeaderMap, routing::post};
         let server = Router::new().route(
             UPLOAD_PATH,

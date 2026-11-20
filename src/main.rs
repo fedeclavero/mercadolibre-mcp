@@ -30,6 +30,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Guía la conexión de Mercado Libre con Claude Code o Codex.
+    Onboard,
     /// Guarda las credenciales de la aplicación.
     Setup(onboarding::SetupArgs),
     /// Autoriza la cuenta mediante OAuth.
@@ -41,8 +43,6 @@ enum Command {
     Check,
     /// Diagnostica la instalación y muestra el próximo paso.
     Doctor(doctor::DoctorArgs),
-    /// Muestra o cambia el modo de acceso.
-    Mode(onboarding::ModeArgs),
     /// Registra el servidor en tus clientes MCP.
     Install(installer::InstallArgs),
     /// Guía para crear la aplicación en el DevCenter.
@@ -75,16 +75,16 @@ impl Command {
             Self::Setup(args) => args.json,
             Self::Authorize(args) => args.json,
             Self::Doctor(args) => args.json,
-            Self::Mode(args) => args.json,
             Self::Install(args) => args.json,
             Self::Devcenter(args) => args.json,
             Self::HttpToken(args) => args.json,
-            Self::Check | Self::Serve(_) => false,
+            Self::Onboard | Self::Check | Self::Serve(_) => false,
         }
     }
 
     async fn run(self) -> Result<ExitCode> {
         match self {
+            Self::Onboard => return onboarding::guided_install().await,
             Self::Setup(args) => args.run().await?,
             Self::Authorize(args) => args.run().await?,
             Self::Serve(args) => match args.transport {
@@ -101,7 +101,6 @@ impl Command {
                 println!("Conectado: usuario {nickname}, ID {id}.");
             }
             Self::Doctor(args) => return args.run().await,
-            Self::Mode(args) => args.run().await?,
             Self::Install(args) => return args.run().await,
             Self::Devcenter(args) => args.run().await?,
             Self::HttpToken(args) => args.run()?,

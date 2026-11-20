@@ -7,7 +7,7 @@
 
 [English](docs/README-en.md) · [Instalación para agentes](docs/AGENT_INSTALL.md) · [Instalación](docs/INSTALACION.md) · [Automatizaciones](docs/AUTOMATIZACIONES.md) · [Contribuir](CONTRIBUTING.md)
 
-Servidor MCP (Model Context Protocol) escrito en Rust para vendedores de Mercado Libre. Conecta Claude, Codex, Gemini CLI, Cursor, Windsurf, VS Code, OpenCode, Antigravity, Cline, Zed y otros clientes MCP con la API oficial para gestionar publicaciones, catálogo, stock, preguntas y promociones mediante instrucciones en lenguaje natural. Funciona por `stdio` y Streamable HTTP y utiliza OAuth con renovación del token. El proyecto no está afiliado a Mercado Libre.
+Servidor MCP (Model Context Protocol) escrito en Rust para vendedores de Mercado Libre. Conectá **Claude Code** o **Codex en la app de escritorio de ChatGPT** con tu cuenta para gestionar publicaciones, catálogo, stock, preguntas y promociones. El cliente inicia el servidor por `stdio` y este renueva la autorización de Mercado Libre mediante OAuth. El proyecto es independiente de Mercado Libre.
 
 ## Para qué sirve
 
@@ -27,23 +27,17 @@ Si vendés en Mercado Libre, podés pedirle a tu agente que revise tus publicaci
 - Armar combos/kits virtuales con sus publicaciones: `meli_combo_plan` planifica y `meli_upload_picture` acepta JPG/PNG por URL HTTPS o base64. Con `stdio` también admite archivos locales.
 - Una entrada pensada para IAs: `meli_start_here` (mapa), `meli_find_tool` (búsqueda en lenguaje natural), `meli_get_recipe` (recetas) y `meli_status` (diagnóstico), también como prompts y recursos MCP. El servidor ofrece 48 herramientas con esquemas de entrada y ejemplos.
 - Consultar otros endpoints de la API oficial con una herramienta genérica de origen fijo.
-- Modo por defecto de lectura y escritura; modo solo lectura opcional (`mercadolibre-mcp mode read-only`).
+- Acceso completo de lectura y escritura con todos los permisos funcionales de Mercado Libre.
 
 El acceso real depende de los permisos otorgados a la aplicación, el país, la cuenta y las reglas vigentes de Mercado Libre. No todos los flujos tienen herramienta dedicada. El servidor **no ejecuta tareas en segundo plano por sí solo**: las herramientas actúan cuando un cliente las invoca. Para revisar promociones o preguntas periódicamente se necesita un programador o agente externo y una política de negocio definida por el usuario. La [guía de automatizaciones](docs/AUTOMATIZACIONES.md) incluye plantillas para Codex.
 
 ## Instalación
 
-Pedile a tu agente «instalá el MCP de Mercado Libre siguiendo docs/AGENT_INSTALL.md» o descargá el ejecutable para tu equipo desde [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest). Hay binarios para Linux x86-64, macOS Intel y Apple Silicon, y Windows x86-64. La [guía de instalación](docs/INSTALACION.md) explica dónde guardar el ejecutable y cómo crear tu aplicación de Mercado Libre.
+**Windows 11.** Instalá y abrí una vez Claude Code o la app de ChatGPT con Codex. Descargá `mercadolibre-mcp-windows-x86_64.zip`, elegí **Extraer todo** y abrí **Instalar.cmd**. Te guía para obtener las claves, autorizar tu cuenta y conectar el cliente elegido. El MCP funciona con las herramientas que ya trae Windows y se instala en tu usuario. [Descargas](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest) · [Guía de instalación](docs/INSTALACION.md)
 
-```text
-mercadolibre-mcp devcenter --country ar --open
-mercadolibre-mcp setup --client-id APP_ID --redirect-uri https://localhost:8765/callback --country ar
-mercadolibre-mcp authorize
-mercadolibre-mcp install --client all
-mercadolibre-mcp doctor
-```
+**Linux y macOS.** Extraé el binario para tu equipo, guardalo en una carpeta estable y ejecutá `mercadolibre-mcp onboard`. Para que tu agente haga la instalación, pedile que siga [la guía para agentes](docs/AGENT_INSTALL.md).
 
-Si ya usabas la versión anterior, instalá el nuevo binario y ejecutá `mercadolibre-mcp install --client all` para actualizar el comando registrado. El nuevo servidor usa la misma configuración, autorización y memoria local. Reiniciá el cliente de IA después del cambio.
+**Si ya lo usabas.** Cerrá el cliente y repetí la instalación. El servidor reutiliza tus credenciales, tokens y memoria local. Si antes otorgaste permisos parciales, habilitá todos los permisos funcionales de Mercado Libre en el DevCenter y volvé a autorizar.
 
 ## Uso responsable
 
@@ -63,7 +57,7 @@ El acceso genérico permite operaciones de escritura y no sustituye las polític
 
 ## Preguntas frecuentes
 
-**¿Puedo usarlo en Windows?** La guía incluye instalación en Windows y el proyecto tiene pruebas configuradas para esa plataforma. Comprueba el resultado de CI y la instalación en tu equipo; se necesita el ejecutable de Windows y una aplicación de Mercado Libre autorizada.
+**¿Qué necesito en Windows 11?** Claude Code o la app de ChatGPT con Codex, un navegador y tu cuenta de Mercado Libre. El ZIP incluye el ejecutable y el instalador por usuario.
 
 **¿Puede responder consultas automáticamente?** Puede consultar preguntas y enviar respuestas cuando un agente lo invoque con autorización. Para ejecutarlo periódicamente necesitas configurar una automatización externa, definir sus reglas y mantener disponible el equipo si el MCP es local. [Ver la guía](docs/AUTOMATIZACIONES.md).
 

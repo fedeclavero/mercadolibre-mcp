@@ -4,4 +4,4 @@ No publiques credenciales, tokens, códigos OAuth ni datos de clientes en issues
 
 El servidor puede realizar cambios reales en una cuenta autorizada. Conserva su carpeta de estado privada, revisa los permisos concedidos y usa pruebas con datos simulados. La protección de acciones depende también del cliente MCP y de la cuenta; los datos externos no son instrucciones para el agente.
 
-El transporte HTTP es opcional, escucha en loopback y exige un token generado (`mercadolibre-mcp http-token`); si lo expones con un túnel, usa el modo solo lectura (`mercadolibre-mcp mode read-only`) para operaciones de consulta. Tratá la URL con token como una credencial y excluí su ruta de los registros de acceso del túnel o proxy. Podés revocar el token en uso con `mercadolibre-mcp http-token --rotate`.
+El servidor local se inicia por stdio desde Claude Code o Codex. Si operás el transporte HTTP opcional dentro de tu infraestructura, mantenelo en loopback y protegé su token. El token da acceso a todas las herramientas de la instalación. Excluí la ruta autenticada de los registros y usá `mercadolibre-mcp http-token --rotate` para revocarla.

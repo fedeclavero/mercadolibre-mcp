@@ -61,15 +61,6 @@ pub fn checked_path(path: &str) -> Result<&str> {
     Ok(path)
 }
 
-fn check_write(method: &str, path: &str) -> Result<()> {
-    if method != "GET" && state::access_mode() == "read_only" {
-        bail!(
-            "Esta instalación está en modo SOLO LECTURA y no permite {method} {path}. Próximo paso: si el usuario quiere habilitar cambios, pedile permiso y ejecutá `{CLI} mode full` (hace falta reiniciar el cliente); si no, limitate a consultas."
-        );
-    }
-    Ok(())
-}
-
 pub fn http_client() -> Result<Client> {
     Client::builder()
         .https_only(true)
@@ -160,14 +151,6 @@ impl Api {
         .await
     }
 
-    pub(crate) fn ensure_write(&self, method: &str, path: &str) -> Result<()> {
-        #[cfg(test)]
-        if self.mock_token.is_some() {
-            return Ok(());
-        }
-        check_write(method, path)
-    }
-
     async fn access_token(&self, stale: Option<&str>) -> Result<String> {
         #[cfg(test)]
         if let Some(token) = &self.mock_token {
@@ -239,7 +222,6 @@ impl Api {
         let simulated = self.mock_token.is_some();
         #[cfg(not(test))]
         let simulated = false;
-        self.ensure_write(method.as_str(), path)?;
         let url = request_url(&self.origin, path, &query)?;
         let headers = checked_headers(&headers)?;
         let current = self.access_token(None).await?;
@@ -279,7 +261,7 @@ impl Api {
         })?;
         let status = response.status().as_u16();
         let warning = !simulated && audit(method.as_str(), path, json!(status)).is_err();
-        response_data(response, warning, method.as_str(), path).await
+        response_data(response, warning, path).await
     }
 }
 
@@ -346,12 +328,7 @@ fn checked_headers(value: &Value) -> Result<reqwest::header::HeaderMap> {
     Ok(headers)
 }
 
-async fn response_data(
-    mut response: Response,
-    warning: bool,
-    method: &str,
-    path: &str,
-) -> Result<Value> {
+async fn response_data(mut response: Response, warning: bool, path: &str) -> Result<Value> {
     let status = response.status().as_u16();
     let content_type = response
         .headers()
@@ -388,7 +365,7 @@ async fn response_data(
             .unwrap_or_default();
         let explanation = match status {
             401 => format!("Token inválido o vencido. Próximo paso: ejecutá `{CLI} authorize` para volver a autorizar y reintentá."),
-            403 => format!("Acceso denegado.{}", permission_hint(method, path)),
+            403 => format!("Acceso denegado.{}", permission_hint(path)),
             404 => "Recurso inexistente o no accesible. Próximo paso: verificá el ID con una tool de lectura (meli_my_items, meli_get_item) y que pertenezca a la cuenta autorizada.".into(),
             429 => "Límite de solicitudes. Próximo paso: esperá unos segundos y reintentá más despacio.".into(),
             _ => "Próximo paso: revisá los datos enviados (meli_api_request POST /items/validate sirve para publicaciones) o consultá la documentación oficial del recurso.".into(),
@@ -418,7 +395,7 @@ async fn response_data(
     Ok(data)
 }
 
-fn permission_hint(method: &str, path: &str) -> String {
+fn permission_hint(path: &str) -> String {
     let base = path.trim_matches('/').to_ascii_lowercase();
     let first = base.split('/').next().unwrap_or_default();
     let group = match first {
@@ -437,13 +414,8 @@ fn permission_hint(method: &str, path: &str) -> String {
         _ if base.starts_with("users/me/invoices") => "Facturación",
         _ => "el grupo de permisos correspondiente a este recurso",
     };
-    let level = if method == "GET" {
-        "Solo lectura"
-    } else {
-        "Lectura y escritura"
-    };
     format!(
-        " Posible causa: falta el permiso \"{group}\" con nivel \"{level}\" en la app. Próximo paso: en el DevCenter abrí la app, tildá \"{group}\" con \"{level}\", guardá y ejecutá `{CLI} authorize` para volver a autorizar; si ya lo tenía, revisá que la cuenta sea la titular y no un colaborador."
+        " Posible causa: falta el permiso \"{group}\" con nivel \"Lectura y escritura\" en la app. Próximo paso: en el DevCenter abrí la app, tildá \"{group}\" con \"Lectura y escritura\", guardá y ejecutá `{CLI} authorize` para volver a autorizar; si ya lo tenía, revisá que la cuenta sea la titular y no un colaborador."
     )
 }
 

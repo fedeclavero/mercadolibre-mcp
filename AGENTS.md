@@ -2,7 +2,7 @@
 
 ## 1. Si te pidieron instalar o conectar este MCP
 
-Si te pidieron instalar, autorizar o migrar una instalación, usá [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md). El instalador registra el binario en los clientes y verifica la conexión por stdio. Pedile al usuario que autorice OAuth en su navegador. Ingresá el secreto por stdin y mantenelo fuera de registros y commits.
+Si te pidieron instalar, autorizar o migrar una instalación, usá [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md). El instalador registra el binario en Claude Code o Codex y verifica la conexión por stdio. Guiá al vendedor para habilitar todos los permisos funcionales de Mercado Libre. Pedile al usuario que autorice OAuth en su navegador. Ingresá el secreto por stdin y mantenelo fuera de registros y commits.
 
 ## 2. Si el MCP ya está conectado y tenés que trabajar en la cuenta de Mercado Libre
 
@@ -23,5 +23,5 @@ Reglas: antes de escrituras masivas o públicas mostrá la vista previa y pedí 
 
 - Conservá los nombres y los formatos existentes de `config.json`, `token.json` y las bases SQLite. Al cambiar autenticación o persistencia, probá que los bloqueos funcionen entre procesos.
 - Al agregar una herramienta, actualizá el contrato en `src/data/mcp_contract.json`, el catálogo y las recetas en `src/data/recipes.json` y el conteo de README. Probá la entrada MCP con datos simulados.
-- Antes de cambiar un cliente del instalador, verificá su ruta y formato contra su documentación oficial.
+- Antes de cambiar el instalador de Claude Code o Codex, verificá su ruta y formato contra la documentación oficial.
 - Ejecutá `cargo fmt --all -- --check`, `cargo clippy --locked --all-targets -- -D warnings` y `cargo test --locked --all-targets`. Usá credenciales sintéticas y un directorio de estado aislado.

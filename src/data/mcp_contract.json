@@ -1319,7 +1319,7 @@
     },
     {
       "name": "meli_status",
-      "description": "USÁ ESTA TOOL PARA diagnosticar cuando algo falla (401, 403, permisos, conexión): muestra versión, modo (lectura/escritura), permisos autorizados y si la cuenta responde. Ejemplo: {}",
+      "description": "USÁ ESTA TOOL PARA diagnosticar cuando algo falla (401, 403, permisos, conexión): muestra versión, permisos autorizados y si la cuenta responde. Ejemplo: {}",
       "inputSchema": {
         "properties": {},
         "title": "meli_statusArguments",

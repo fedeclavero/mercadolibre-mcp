@@ -100,7 +100,7 @@ fn check_config(config: Option<&Value>) -> Check {
     if !missing.is_empty() {
         return Check::new(key, format!("Faltan campos: {}.", missing.join(", "))).fail(
             "error",
-            "Ejecutá `mercadolibre-mcp setup` con todos los datos de la app (docs/AGENT_INSTALL.md, paso 5).",
+            "Ejecutá `mercadolibre-mcp setup` con todos los datos de la app (docs/AGENT_INSTALL.md, paso 3).",
         );
     }
     let country = config["country"].as_str().unwrap_or_default();
@@ -123,13 +123,13 @@ fn check_config(config: Option<&Value>) -> Check {
     )
 }
 
-fn check_token(token: Option<&Value>, checks: &mut Vec<Check>, read_only: bool) -> bool {
+fn check_token(token: Option<&Value>, checks: &mut Vec<Check>) -> bool {
     let key = "autorizacion";
     let Some(token) = token else {
         checks.push(
             Check::new(key, "La cuenta todavía no está autorizada.").fail(
                 "error",
-                "Ejecutá `mercadolibre-mcp authorize` (docs/AGENT_INSTALL.md, paso 6).",
+                "Ejecutá `mercadolibre-mcp authorize` (docs/AGENT_INSTALL.md, paso 4).",
             ),
         );
         return false;
@@ -168,16 +168,8 @@ fn check_token(token: Option<&Value>, checks: &mut Vec<Check>, read_only: bool) 
             )
         },
     ));
-    if let Some(scope) = token["scope"].as_str() {
-        let scopes = scope.replace(',', " ");
-        let mut have: Vec<&str> = scopes.split_whitespace().collect();
-        have.sort_unstable();
-        have.dedup();
-        let required = ["read", "write", "offline_access"];
-        let lacking: Vec<_> = required
-            .into_iter()
-            .filter(|scope| !(*scope == "write" && read_only) && !have.contains(scope))
-            .collect();
+    if let Some(have) = auth::oauth_scopes(token) {
+        let lacking = auth::missing_scopes(&have);
         let permissions = if lacking.is_empty() {
             Check::new(
                 "permisos",
@@ -186,7 +178,7 @@ fn check_token(token: Option<&Value>, checks: &mut Vec<Check>, read_only: bool) 
         } else {
             Check::new("permisos", format!("Faltan permisos: {}.", lacking.join(", "))).fail(
                 "error",
-                "Revisá en el DevCenter los permisos para las operaciones que necesitás y el acceso offline. Ejecutá `mercadolibre-mcp authorize` otra vez.",
+                "Habilitá en el DevCenter todos los permisos funcionales de Mercado Libre y el acceso offline. Ejecutá `mercadolibre-mcp authorize` otra vez.",
             )
         };
         checks.push(permissions);
@@ -258,17 +250,8 @@ impl DoctorArgs {
         let config_valid = config_check.ok;
         checks.push(config_check);
 
-        let read_only = state::access_mode() == "read_only";
         let token = state::load_private("token.json").ok();
-        let token_valid = check_token(token.as_ref(), &mut checks, read_only);
-        checks.push(Check::new(
-            "modo",
-            if read_only {
-                "SOLO LECTURA (las escrituras están bloqueadas; `mode full` las habilita)"
-            } else {
-                "lectura y escritura (completo)"
-            },
-        ));
+        let token_valid = check_token(token.as_ref(), &mut checks);
         if !self.offline && config_valid && token_valid {
             checks.push(check_api().await);
         }

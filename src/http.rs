@@ -102,7 +102,7 @@ impl TokenArgs {
                 "Token: {token}\nCabecera: Authorization: Bearer <token>\nURL local: http://127.0.0.1:8765/mcp (arrancá el servidor con `serve --transport http`)"
             );
             if let Some(url) = connector {
-                println!("URL para ChatGPT: {url}");
+                println!("URL autenticada: {url}");
             }
         }
         Ok(())
