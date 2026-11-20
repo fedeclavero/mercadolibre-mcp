@@ -81,6 +81,7 @@ jobs:
   windows-11:
     name: Install and connect on Windows 11
     runs-on: windows-11-arm
+    timeout-minutes: 5
     needs: test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
