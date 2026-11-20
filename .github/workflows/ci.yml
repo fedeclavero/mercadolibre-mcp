@@ -34,6 +34,9 @@ jobs:
         run: cargo +stable clippy --locked --all-targets -- -D warnings
       - name: Run tests
         run: cargo +stable test --locked --all-targets
+      - name: Verify Cargo package
+        if: runner.os == 'Linux'
+        run: cargo +stable package --locked --no-verify
       - name: Build executable
         run: cargo +stable build --locked --release
       - name: Package executable (Linux and macOS)

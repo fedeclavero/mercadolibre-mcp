@@ -6,7 +6,16 @@ rust-version = "1.89"
 description = "Servidor MCP para vendedores de Mercado Libre"
 license = "MIT"
 repository = "https://github.com/fedeclavero/mercadolibre-mcp"
-include = ["/src/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/LICENSE"]
+include = [
+    "/src/*.rs",
+    "/src/data/*.json",
+    "/src/data/*.md",
+    "/src/data/guia_assets/*.png",
+    "/Cargo.toml",
+    "/Cargo.lock",
+    "/README.md",
+    "/LICENSE",
+]
 
 [dependencies]
 anyhow = "1"
