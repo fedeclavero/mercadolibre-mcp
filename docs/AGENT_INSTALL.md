@@ -8,7 +8,7 @@ Confirmá que podés guardar las credenciales en el equipo y modificar la config
 
 ## 1. Instalá el binario
 
-Identificá el sistema y la arquitectura y usá el archivo correspondiente de [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest). Extraelo a una ubicación estable según la [guía de instalación](INSTALACION.md#1-obtener-el-ejecutable). En Windows 11 el ZIP incluye `Instalar.cmd` para la instalación interactiva. Si automatizás el proceso, guardá el binario en `%LOCALAPPDATA%\Programs\mercadolibre-mcp` y usá su ruta completa. Comprobá que `ML --version` responde. Si el usuario ya tiene una cuenta conectada, probá `ML doctor` y pasá al paso 5 cuando confirme la autorización completa.
+Identificá el sistema y la arquitectura y usá el archivo correspondiente de [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest). Extraelo a una ubicación estable según la [guía de instalación](INSTALACION.md). En Windows 11 el ZIP incluye `Instalar.cmd` para la instalación interactiva. Si automatizás el proceso, guardá el binario en `%LOCALAPPDATA%\Programs\mercadolibre-mcp` y usá su ruta completa. Comprobá que `ML --version` responde. Si el usuario ya tiene una cuenta conectada, probá `ML doctor` y pasá al paso 5 cuando confirme la autorización completa.
 
 ## 2. Crear la app en el DevCenter de Mercado Libre
 
