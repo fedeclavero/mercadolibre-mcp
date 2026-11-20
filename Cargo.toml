@@ -11,6 +11,7 @@ include = [
     "/src/data/*.json",
     "/src/data/*.md",
     "/src/data/guia_assets/*.png",
+    "/tests/*.rs",
     "/Cargo.toml",
     "/Cargo.lock",
     "/README.md",

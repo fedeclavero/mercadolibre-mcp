@@ -45,6 +45,7 @@ async fn streamable_http_can_discover_and_call_mcp_and_revokes_rotated_tokens() 
     let _server = RunningServer(
         Command::new(BINARY)
             .env("MELI_MCP_STATE_DIR", state.path())
+            .env("MELI_MCP_MODE", "read-only")
             .args(["serve", "--transport", "http", "--port", &port.to_string()])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -128,6 +129,30 @@ async fn streamable_http_can_discover_and_call_mcp_and_revokes_rotated_tokens() 
             .get("combos")
             .is_some()
     );
+
+    for (name, arguments) in [
+        (
+            "meli_save_business_policy",
+            json!({"topic":"envíos","rule_text":"test"}),
+        ),
+        (
+            "meli_save_product_rule",
+            json!({"item_id":"MLA1","minimum_advertised_price":"100","max_discount_pct":"10"}),
+        ),
+        (
+            "meli_clear_question_attempt",
+            json!({"question_id":42,"explicitly_requested":true}),
+        ),
+    ] {
+        let response = rpc(request(json!({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":name,"arguments":arguments}})).send().await?).await?;
+        assert_eq!(response["result"]["isError"], true);
+        assert!(
+            response["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("SOLO LECTURA")
+        );
+    }
     assert_eq!(
         client
             .delete(&protected)

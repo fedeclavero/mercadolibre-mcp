@@ -6,6 +6,7 @@
 - El instalador actualiza entradas oficiales que usaban `uvx`, valida el arranque antes de escribir la configuración y conserva comentarios en los archivos JSONC.
 - El receptor OAuth abre el puerto antes de iniciar el navegador. La renovación de tokens sigue serializada entre procesos.
 - El transporte HTTP aplica la rotación del token al siguiente pedido y admite imágenes por URL HTTPS o base64. En `stdio` también admite archivos locales. Los JPG/PNG deben poder decodificarse.
+- El modo solo lectura bloquea cambios en la cuenta, en las reglas del negocio y en el registro local de respuestas.
 - La guía del DevCenter indica los permisos funcionales según las operaciones que necesita el vendedor.
 
 ## 0.2.0

@@ -415,7 +415,7 @@ async fn status(api: &Api) -> Value {
     }
     let missing_perms = !notices.is_empty();
     if readonly {
-        notices.push("El modo es solo lectura: las escrituras están bloqueadas. Para habilitarlas: `mercadolibre-mcp mode full`.".to_owned());
+        notices.push("El modo es solo lectura: los cambios en la cuenta y en la memoria local están bloqueados. Para habilitarlas: `mercadolibre-mcp mode full`.".to_owned());
     }
     let mut result = json!({
         "version": env!("CARGO_PKG_VERSION"),

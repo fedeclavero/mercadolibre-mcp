@@ -2,7 +2,7 @@ use crate::{
     business::{self, CENT, decimal},
     client::{Api, segment},
     images::{self, PICTURE_RULES},
-    state::lock,
+    state::{access_mode, lock},
 };
 use anyhow::{Context, Result, bail};
 use caseless::default_case_fold_str;
@@ -46,6 +46,15 @@ pub(crate) async fn call(
     arguments: &Value,
     local_files: bool,
 ) -> Result<Value> {
+    if matches!(
+        name,
+        "meli_clear_question_attempt" | "meli_save_product_rule" | "meli_save_business_policy"
+    ) && access_mode() == "read_only"
+    {
+        bail!(
+            "Esta instalación está en modo SOLO LECTURA y no permite {name}. Próximo paso: si el usuario quiere habilitar cambios, pedile permiso y ejecutá `mercadolibre-mcp mode full`."
+        );
+    }
     let item = arguments["item_id"].as_str().unwrap_or_default();
     let question = arguments["question_id"].as_i64().unwrap_or_default();
     let confirmed = arguments["explicitly_requested"].as_bool().unwrap_or(false);
