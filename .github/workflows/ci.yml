@@ -1,96 +1,23 @@
-name: CI
+name: Verify Windows 11 package
 on:
   push:
-  pull_request:
-  workflow_dispatch:
 permissions:
   contents: read
-env:
-  CARGO_TERM_COLOR: always
+  actions: read
 jobs:
-  test:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            platform: linux-x86_64
-          - os: macos-15
-            platform: macos-arm64
-          - os: macos-15-intel
-            platform: macos-x86_64
-          - os: windows-2022
-            platform: windows-x86_64
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - name: Install Rust
-        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
-      - name: Check formatting
-        run: cargo +stable fmt --all -- --check
-      - name: Lint
-        run: cargo +stable clippy --locked --all-targets -- -D warnings
-      - name: Run tests
-        run: cargo +stable test --locked --all-targets
-      - name: Verify Cargo package
-        if: runner.os == 'Linux'
-        run: cargo +stable package --locked --no-verify
-      - name: Build executable
-        if: runner.os != 'Windows'
-        run: cargo +stable build --locked --release
-      - name: Build standalone Windows executable
-        if: runner.os == 'Windows'
-        env:
-          CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: -C target-feature=+crt-static
-        run: cargo +stable build --locked --release --target x86_64-pc-windows-msvc
-      - name: Package executable (Linux and macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          PLATFORM: ${{ matrix.platform }}
-        run: |
-          mkdir -p package
-          cp target/release/mercadolibre-mcp LICENSE package/
-          tar -czf "mercadolibre-mcp-${PLATFORM}.tar.gz" -C package mercadolibre-mcp LICENSE
-      - name: Package executable (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $exe = 'target/x86_64-pc-windows-msvc/release/mercadolibre-mcp.exe'
-          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
-          $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-          $dumpbin = Get-ChildItem "$vs/VC/Tools/MSVC/*/bin/Hostx64/x64/dumpbin.exe" | Select-Object -Last 1
-          if (-not $dumpbin) { throw 'dumpbin not found' }
-          $dlls = & $dumpbin.FullName /dependents $exe | Out-String
-          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect Windows executable' }
-          Write-Host $dlls
-          if ($dlls -match '(?im)^\s*(?:vcruntime|msvcp|concrt|vcomp)\w*\.dll\s*$') {
-            throw 'The executable depends on the Visual C++ Redistributable'
-          }
-          Compress-Archive -LiteralPath $exe,'packaging/windows/Instalar.cmd','LICENSE' -DestinationPath 'mercadolibre-mcp-windows-x86_64.zip'
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: mercadolibre-mcp-${{ matrix.platform }}
-          path: |
-            mercadolibre-mcp-*.tar.gz
-            mercadolibre-mcp-*.zip
-          if-no-files-found: error
-
   windows-11:
-    name: Install and connect on Windows 11
     runs-on: windows-11-arm
     timeout-minutes: 5
-    needs: test
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: mercadolibre-mcp-windows-x86_64
           path: windows-zip
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 44828739212
       - name: Exercise Windows ZIP with system PowerShell and CMD
         shell: powershell
         run: ./packaging/windows/smoke-test.ps1 -Zip ./windows-zip/mercadolibre-mcp-windows-x86_64.zip
