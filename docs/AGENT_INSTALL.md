@@ -1,8 +1,17 @@
 # Instalación para agentes de IA (ejecutala completa por el usuario)
 
-> **Regla principal: el usuario final no es técnico y probablemente le da miedo abrir una terminal o tocar archivos.** Vos, como agente de IA, hacés **todo el proceso de punta a punta** en su computadora (**Claude Code** o **Codex**). Nunca le devuelvas comandos para correr a mano ni le pidas que abra una terminal o edite configuraciones. Hablá en lenguaje simple y en el idioma del usuario.
+> **Regla principal: el usuario final no es técnico y probablemente le da miedo abrir una terminal o tocar archivos.** Vos, como agente de IA, hacés **todo el proceso de punta a punta** en su computadora (**Claude Code**, **Codex** o **Antigravity**). Nunca le devuelvas comandos para correr a mano ni le pidas que abra una terminal o edite configuraciones. Hablá en lenguaje simple y en el idioma del usuario.
 
-`ML` representa la ruta absoluta de `mercadolibre-mcp` en los ejemplos. En Windows PowerShell guardala en `$ML` e invocala con `& $ML`.
+`ML` representa la ruta absoluta de `mercadolibre-mcp` en los ejemplos. En Windows PowerShell guardala en `$ML` e invocala con `& $ML`. No hace falta instalar Python, Node.js, Git, Rust ni Visual C++ Redistributable en Windows 11.
+
+## Si el usuario ya lo tiene instalado (actualización — NO rotar credenciales)
+
+Si el usuario pide **actualizar** una instalación anterior (de Python/`uvx` o de una versión previa de Rust):
+1. **Nunca le pidas crear otra app, rotar claves ni volver a autorizar** si ya existen credenciales válidas.
+2. Descargá el binario nuevo del Paso 1 y reemplazá el ejecutable en su carpeta fija (`%LOCALAPPDATA%\Programs\mercadolibre-mcp\mercadolibre-mcp.exe` en Windows o `~/.local/bin/mercadolibre-mcp` en macOS/Linux).
+3. Verificá las credenciales existentes sin tocarlas con `ML doctor --offline --json`. Si `configuracion` y `autorizacion` dan `ok: true`, **no corras `setup` ni `authorize`**: pasá directo al Paso 5 (`ML install --client <cliente> --json`), que migra automáticamente entradas viejas de `uvx`/Python preservando tus demás servidores y credenciales.
+4. Solo si `doctor --offline --json` avisa explícitamente que faltan permisos de escritura (`write`), guialo para activar los permisos faltantes en su misma app del DevCenter.
+5. Pedile al usuario que cierre y vuelva a abrir su cliente (en Antigravity también sirve *Settings → Installed MCP Servers → Refresh*).
 
 ## 0. Pedí permiso una sola vez y explicá cómo vas a trabajar
 
@@ -17,7 +26,7 @@ En cuanto el usuario diga que sí:
 
 ## 1. Elegí el cliente y descargá el binario (lo hacés vos)
 
-1. Detectá si estás en **Claude Code** o **Codex**. Registrá ese cliente (o ambos si el usuario lo pide). Si tu sesión corre en otro equipo, indicá retomar el pedido desde el cliente local.
+1. Detectá si estás en **Claude Code**, **Codex** o **Antigravity** (app de escritorio o CLI `agy`). Registrá ese cliente (o todos los que el usuario pida). Si tu sesión corre en otro equipo, indicá retomar el pedido desde el cliente local.
 2. Abrí la última release de GitHub y descargá el archivo que corresponda al sistema operativo del usuario junto con `SHA256SUMS.txt` del mismo tag. Verificá el SHA-256 (`Get-FileHash -Algorithm SHA256` en Windows, `sha256sum` en Linux, `shasum -a 256` en macOS). [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest)
 
 | Equipo | Archivo de la release |
@@ -81,17 +90,20 @@ Comprobá que el JSON devuelva `"ok": true`. Nunca muestres el secreto en tu res
 
 - Claude Code: `ML install --client claude-code --json`
 - Codex: `ML install --client codex --json`
-- Ambos: `ML install --client claude-code --client codex --json`
+- Antigravity (escritorio, y `agy` si está instalado): `ML install --client antigravity --json`
+- Antigravity CLI (`agy` solamente): `ML install --client agy --json`
+- Todos los clientes detectados: `ML install --client all --json`
 
-El instalador conserva tus otros servidores, guarda una copia de respaldo con fecha y verifica que el binario arranque bien por MCP (`stdio`). Para un solo proyecto, agregá `--scope project`.
+El instalador conserva tus otros servidores, migra automáticamente entradas viejas de `uvx`/Python, guarda una copia de respaldo con fecha y verifica que el binario arranque bien por MCP (`stdio`). Para un solo proyecto, agregá `--scope project`.
 - Claude Code usa `~/.claude.json` o `$CLAUDE_CONFIG_DIR/.claude.json`.
 - Codex usa `~/.codex/config.toml` o `$CODEX_HOME/config.toml`.
+- Antigravity usa `~/.gemini/antigravity/mcp_config.json` (Windows: `%USERPROFILE%\.gemini\antigravity\mcp_config.json`), y `agy` usa `~/.gemini/config/mcp_config.json`.
 
 ## 6. Verificá y avisale al usuario qué hacer ahora
 
 1. En el JSON de `install`, verificá `ok: true` y `launch_check.ok: true` (`48` herramientas).
 2. Ejecutá `ML doctor --json` y resolvé vos mismo cada `next_step` si algo falla.
-3. Avisale al usuario en lenguaje claro que **cierre por completo y vuelva a abrir** su app de IA (Claude Code o la app de ChatGPT con Codex) para que aparezcan las herramientas.
+3. Avisale al usuario en lenguaje claro que **cierre por completo y vuelva a abrir** su app de IA (Claude Code, la app de ChatGPT con Codex o Antigravity; en Antigravity también puede tocar *Settings → Installed MCP Servers → Refresh*) para que aparezcan las herramientas.
 4. En la nueva sesión llamá `meli_start_here` y `meli_status` para confirmar la cuenta real. Si la sesión actual necesita reiniciarse para cargar las herramientas, indicá claramente que la instalación y verificación técnica quedaron listas y que solo falta reiniciar para probarlo desde el chat.
 
 ## Si algo falla

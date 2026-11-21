@@ -35,5 +35,5 @@ exit /b 1
 set "temporal=%destino%.%RANDOM%-%RANDOM%.tmp"
 copy /y "%origen%" "%temporal%" >nul && move /y "%temporal%" "%destino%" >nul && exit /b 0
 if exist "%temporal%" del /q "%temporal%"
-echo Cerra por completo Claude Code y Codex y ejecuta Instalar.cmd otra vez.
+echo Cerra por completo Claude Code, Codex y Antigravity y ejecuta Instalar.cmd otra vez.
 exit /b 1

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+
+- Soporte nativo para **Antigravity** (app de escritorio en `~/.gemini/antigravity/mcp_config.json` y CLI `agy` en `~/.gemini/config/mcp_config.json`) junto con **Claude Code** y **Codex** en Windows 11, macOS y Linux.
+- Menú interactivo de `Instalar.cmd` / `onboard` y prueba de humo de Windows 11 ampliados para cubrir los tres clientes.
+- Guías para agentes y usuarios (`README.md`, `docs/AGENT_INSTALL.md`, `docs/INSTALACION.md`, `AGENTS.md`, `llms.txt`) reforzadas para usuarios no técnicos (sin abrir terminal), acceso completo desde el momento uno y actualización paso a paso sin rotar credenciales.
+
 ## 0.3.1
 
 - Instalador para Windows 11 por usuario. El ejecutable incorpora el runtime de Visual C++ y el ZIP incluye `Instalar.cmd`.

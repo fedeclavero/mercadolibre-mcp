@@ -140,15 +140,19 @@ fn offline_doctor_accepts_full_scopes_and_does_not_print_credentials() {
 }
 
 #[test]
-fn installer_only_supports_claude_code_and_codex() {
+fn installer_supports_claude_code_codex_and_antigravity() {
     let home = tempfile::tempdir().unwrap();
     let project = home.path().join("proyecto con espacios");
     let claude = home.path().join("perfil claude");
     let codex = home.path().join("perfil codex");
+    let antigravity = home.path().join("perfil antigravity");
+    let agy = home.path().join("perfil agy");
     let run = |clients: &[&str]| {
         Command::new(BINARY)
             .env("CLAUDE_CONFIG_DIR", &claude)
             .env("CODEX_HOME", &codex)
+            .env("ANTIGRAVITY_CONFIG_DIR", &antigravity)
+            .env("AGY_CONFIG_DIR", &agy)
             .env("MELI_MCP_STATE_DIR", &project)
             .arg("install")
             .args(clients)
@@ -158,13 +162,28 @@ fn installer_only_supports_claude_code_and_codex() {
     };
     let unsupported = run(&["--client", "cursor"]);
     assert!(!unsupported.status.success());
-    assert!(!claude.exists() && !codex.exists());
+    assert!(!claude.exists() && !codex.exists() && !antigravity.exists());
 
-    let result = run(&["--client", "claude-code", "--client", "codex"]);
+    let result = run(&[
+        "--client",
+        "claude-code",
+        "--client",
+        "codex",
+        "--client",
+        "antigravity",
+    ]);
     let report = read_report(&result);
     assert!(result.status.success(), "{report}");
     assert!(claude.join(".claude.json").is_file());
     assert!(codex.join("config.toml").is_file());
+    assert!(antigravity.join("mcp_config.json").is_file());
+    let ag_cfg: Value =
+        serde_json::from_slice(&fs::read(antigravity.join("mcp_config.json")).unwrap()).unwrap();
+    assert_eq!(
+        ag_cfg["mcpServers"]["mercadolibre"]["args"],
+        json!(["serve"])
+    );
+    assert!(ag_cfg["mcpServers"]["mercadolibre"]["type"].is_null());
     assert_eq!(report["launch_check"]["tools"], 48);
-    assert_eq!(report["installed"].as_array().map(Vec::len), Some(2));
+    assert!(report["installed"].as_array().map(Vec::len).unwrap_or(0) >= 3);
 }

@@ -386,18 +386,28 @@ pub(crate) async fn guided_install() -> Result<std::process::ExitCode> {
         "Mercado Libre MCP
 "
     );
-    println!("Instalá tu cliente, iniciá sesión y cerralo antes de continuar.");
+    println!(
+        "Instalá Claude Code, Codex (ChatGPT) o Antigravity, iniciá sesión y cerralo antes de continuar."
+    );
     println!("1. Claude Code");
     println!("2. Codex en la app de ChatGPT");
-    println!("3. Ambos");
+    println!("3. Antigravity");
+    println!("4. Todos (Claude Code, Codex y Antigravity)");
     println!("0. Salir");
     let clients = loop {
         match prompt("Elegí una opción: ")?.trim() {
             "1" => break vec!["claude-code".to_owned()],
             "2" => break vec!["codex".to_owned()],
-            "3" => break vec!["claude-code".to_owned(), "codex".to_owned()],
+            "3" => break vec!["antigravity".to_owned()],
+            "4" => {
+                break vec![
+                    "claude-code".to_owned(),
+                    "codex".to_owned(),
+                    "antigravity".to_owned(),
+                ];
+            }
             "0" | "" => return Ok(ExitCode::SUCCESS),
-            _ => println!("Ingresá 1, 2, 3 o 0."),
+            _ => println!("Ingresá 1, 2, 3, 4 o 0."),
         }
     };
 

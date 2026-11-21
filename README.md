@@ -1,16 +1,16 @@
 # Mercado Libre MCP
 
-**¿Querés que tu IA lo instale?** Pegá este mensaje en Claude Code o Codex en tu computadora (no necesitás saber programar ni abrir una terminal):
+**¿Querés que tu IA lo instale?** Pegá este mensaje en **Claude Code**, **Codex** o **Antigravity** en tu computadora (no necesitás saber programar ni abrir una terminal):
 
 > Instalá el MCP de Mercado Libre en el cliente que estoy usando con acceso completo y verificá la conexión. https://github.com/fedeclavero/mercadolibre-mcp
 
-**Para el agente.** El usuario final normalmente no es técnico y no quiere abrir terminales ni editar archivos. Leé y ejecutá de punta a punta la [guía de instalación para agentes](docs/AGENT_INSTALL.md): pedí permiso una sola vez para pedirle y guardar sus claves, descargá el binario de GitHub Releases, guialo para activar **todos los permisos de lectura y escritura** (acceso completo, no existe modo solo lectura), ejecutá vos todos los comandos y verificá la conexión. Si GitHub muestra una versión en caché, usá la [guía en texto plano](https://raw.githubusercontent.com/fedeclavero/mercadolibre-mcp/main/docs/AGENT_INSTALL.md).
+**Para el agente.** El usuario final normalmente no es técnico y no quiere abrir terminales ni editar archivos. Leé y ejecutá de punta a punta la [guía de instalación para agentes](docs/AGENT_INSTALL.md): pedí permiso una sola vez para pedirle y guardar sus claves, descargá el binario de GitHub Releases, guialo para activar **todos los permisos de lectura y escritura** (acceso completo, no existe modo solo lectura), ejecutá vos todos los comandos para **Claude Code**, **Codex** o **Antigravity** y verificá la conexión. Si el usuario ya lo tiene instalado, **no rotes ni vuelvas a pedir sus claves**: reutilizá sus credenciales existentes. Si GitHub muestra una versión en caché, usá la [guía en texto plano](https://raw.githubusercontent.com/fedeclavero/mercadolibre-mcp/main/docs/AGENT_INSTALL.md).
 
 [![CI](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml)
 
 [English](docs/README-en.md) · [Instalación para agentes](docs/AGENT_INSTALL.md) · [Instalación](docs/INSTALACION.md) · [Automatizaciones](docs/AUTOMATIZACIONES.md) · [Contribuir](CONTRIBUTING.md)
 
-Servidor MCP (Model Context Protocol) escrito en Rust para vendedores de Mercado Libre. Conectá **Claude Code** o **Codex en la app de escritorio de ChatGPT** con tu cuenta para gestionar publicaciones, catálogo, stock, preguntas y promociones. El cliente inicia el servidor por `stdio` y este renueva la autorización de Mercado Libre mediante OAuth. El proyecto es independiente de Mercado Libre.
+Servidor MCP (Model Context Protocol) escrito en Rust para vendedores de Mercado Libre. Conectá **Claude Code**, **Codex en la app de escritorio de ChatGPT** o **Antigravity** con tu cuenta para gestionar publicaciones, catálogo, stock, preguntas y promociones. El cliente inicia el servidor por `stdio` y este renueva la autorización de Mercado Libre mediante OAuth. El proyecto es independiente de Mercado Libre.
 
 ## Para qué sirve
 
@@ -36,11 +36,26 @@ El acceso real depende de los permisos otorgados a la aplicación, el país, la 
 
 ## Instalación
 
-**Windows 11.** Instalá y abrí una vez Claude Code o la app de ChatGPT con Codex. Descargá `mercadolibre-mcp-windows-x86_64.zip`, elegí **Extraer todo** y abrí **Instalar.cmd**. Te guía para obtener las claves, autorizar tu cuenta y conectar el cliente elegido. El MCP funciona con las herramientas que ya trae Windows y se instala en tu usuario. [Descargas](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest) · [Guía de instalación](docs/INSTALACION.md)
+**Windows 11 (sin instalar Python, Node, Git, Rust ni Visual C++).** Instalá y abrí una vez **Claude Code**, **la app de ChatGPT con Codex** o **Antigravity**. Descargá `mercadolibre-mcp-windows-x86_64.zip`, elegí **Extraer todo** y abrí **Instalar.cmd**. Te guía para obtener las claves, activar todos los permisos de lectura y escritura, autorizar tu cuenta y conectar el cliente elegido. Funciona con las herramientas que ya trae Windows y sin permisos de administrador. [Descargas](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest) · [Guía de instalación](docs/INSTALACION.md)
 
-**Linux y macOS.** Extraé el binario para tu equipo, guardalo en una carpeta estable y ejecutá `mercadolibre-mcp onboard`. Para que tu agente haga la instalación, pedile que siga [la guía para agentes](docs/AGENT_INSTALL.md).
+**Linux y macOS.** Extraé el binario para tu equipo, guardalo en una carpeta estable (`~/.local/bin`) y ejecutá `mercadolibre-mcp onboard`. Para que tu agente haga todo por vos, pegale el mensaje de arriba para que siga [la guía para agentes](docs/AGENT_INSTALL.md).
 
-**Si ya lo usabas.** Cerrá el cliente y repetí la instalación. El servidor reutiliza tus credenciales, tokens y memoria local. Si antes otorgaste permisos parciales, habilitá todos los permisos funcionales de Mercado Libre en el DevCenter y volvé a autorizar.
+## Cómo actualizar una instalación existente (sin rotar credenciales)
+
+Si ya tenías instalada una versión anterior (Python/`uvx` o Rust `0.3.x`), **no tenés que rotar claves, crear otra app ni volver a autorizar tu cuenta**:
+
+1. Cerrá por completo tu cliente de IA (Claude Code, Codex o Antigravity).
+2. **En Windows 11:** bajá el nuevo `mercadolibre-mcp-windows-x86_64.zip`, extraelo y abrí **`Instalar.cmd`** (reemplaza el ejecutable y actualiza la configuración dejando copia de respaldo). **En Linux/macOS:** reemplazá el binario en `~/.local/bin/mercadolibre-mcp` y corré `mercadolibre-mcp install --client all`.
+3. Volvé a abrir tu cliente de IA.
+
+Tus credenciales (`config.json`), tu token (`token.json`) y tu base local (`business.sqlite3`) en `%LOCALAPPDATA%\mercadolibre-mcp` (Windows) o `~/.local/share/mercadolibre-mcp` (Linux/macOS) se reutilizan intactos. Solo tendrías que agregar permisos en el DevCenter si tu app vieja se había creado con permisos parciales (sin escritura).
+
+### Qué cambió (migración a Rust `0.3.x`)
+
+- **Binario nativo en Rust sin dependencias:** ya no necesita Python, `uv`, Git ni Visual C++ Redistributable en Windows 11, y arranca en milisegundos.
+- **Acceso completo siempre activo:** se eliminó el modo solo lectura; las 48 herramientas están listas con lectura y escritura completas desde el momento uno.
+- **Clientes nativos:** instalador verificado para **Claude Code**, **Codex** y **Antigravity** (app de escritorio y CLI `agy`), migrando automáticamente entradas viejas de `uvx`/Python.
+- **Seguridad y estabilidad:** renovación de tokens serializada entre procesos, validación de imágenes y bloqueo de archivos locales en el transporte HTTP.
 
 ## Uso responsable
 
@@ -60,7 +75,7 @@ El acceso genérico permite operaciones de escritura y no sustituye las polític
 
 ## Preguntas frecuentes
 
-**¿Qué necesito en Windows 11?** Claude Code o la app de ChatGPT con Codex, un navegador y tu cuenta de Mercado Libre. El ZIP incluye el ejecutable y el instalador por usuario.
+**¿Qué necesito en Windows 11?** **Claude Code**, **la app de ChatGPT con Codex** o **Antigravity**, un navegador y tu cuenta de Mercado Libre. El ZIP incluye el ejecutable autónomo y el instalador por usuario (no necesitás Python, Node, Git, Rust ni permisos de administrador).
 
 **¿Puede responder consultas automáticamente?** Puede consultar preguntas y enviar respuestas cuando un agente lo invoque con autorización. Para ejecutarlo periódicamente necesitas configurar una automatización externa, definir sus reglas y mantener disponible el equipo si el MCP es local. [Ver la guía](docs/AUTOMATIZACIONES.md).
 

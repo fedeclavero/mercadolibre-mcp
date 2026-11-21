@@ -2,12 +2,12 @@
 
 ## Windows 11
 
-1. Instalá el cliente que vas a usar. Abrilo, iniciá sesión y cerralo por completo. [Claude Code para Windows](https://code.claude.com/docs/en/setup#set-up-on-windows) · [ChatGPT para Windows con Codex](https://learn.chatgpt.com/docs/windows/windows-app)
-2. Bajá `mercadolibre-mcp-windows-x86_64.zip` y en el Explorador elegí **Extraer todo**. Dentro de la carpeta extraída, abrí **Instalar.cmd**. El asistente guarda el MCP en `%LOCALAPPDATA%\Programs\mercadolibre-mcp` y funciona con una cuenta estándar de Windows. [Descargas](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest)
-3. Elegí **Claude Code**, **Codex en la app de ChatGPT** o ambos. Seguí la guía del DevCenter, habilitá todos los permisos funcionales de Mercado Libre y autorizá la conexión en el navegador.
-4. Volvé a abrir tu cliente y pedile «Conectate a Mercado Libre y ejecutá `meli_status`». En Codex también podés ver la conexión con `/mcp`.
+1. Instalá el cliente que vas a usar (**Claude Code**, **ChatGPT para Windows con Codex** o **Antigravity**). Abrilo, iniciá sesión y cerralo por completo. [Claude Code para Windows](https://code.claude.com/docs/en/setup#set-up-on-windows) · [ChatGPT para Windows con Codex](https://learn.chatgpt.com/docs/windows/windows-app)
+2. Bajá `mercadolibre-mcp-windows-x86_64.zip` y en el Explorador elegí **Extraer todo**. Dentro de la carpeta extraída, abrí **Instalar.cmd**. El asistente guarda el MCP en `%LOCALAPPDATA%\Programs\mercadolibre-mcp` y funciona en un Windows 11 limpio sin Python, Node, Git, Rust, Visual C++ ni permisos de administrador. [Descargas](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest)
+3. Elegí **Claude Code**, **Codex en la app de ChatGPT**, **Antigravity** o **Todos**. Seguí la guía del DevCenter, habilitá todos los permisos funcionales de Mercado Libre (lectura y escritura) y autorizá la conexión en el navegador.
+4. Volvé a abrir tu cliente y pedile «Conectate a Mercado Libre y ejecutá `meli_status`». En Codex también podés ver la conexión con `/mcp`, y en Antigravity desde *Settings → Installed MCP Servers*.
 
-El ZIP trae el servidor. Para usar Claude Code o Codex, iniciá sesión por separado en el cliente elegido.
+El ZIP trae el servidor autónomo. Iniciá sesión por separado en el cliente de IA elegido.
 
 ## Linux y macOS
 
@@ -19,9 +19,9 @@ Descargá el archivo correspondiente, extraé el binario, guardalo en una ubicac
 | Mac Apple Silicon | `mercadolibre-mcp-macos-arm64.tar.gz` |
 | Mac Intel | `mercadolibre-mcp-macos-x86_64.tar.gz` |
 
-## Actualización
+## Actualización (sin rotar credenciales)
 
-Cerrá tu cliente y repetí el paso de instalación. Se conservan las credenciales, los tokens y la memoria local. Si usabas una configuración por proyecto, registrá el binario con `install --scope project --client claude-code` o `install --scope project --client codex` en ese proyecto. Si tu autorización es parcial, habilitá todos los permisos en el DevCenter de la app existente y volvé a autorizar.
+Cerrá tu cliente de IA y repetí el paso de instalación (`Instalar.cmd` en Windows, o reemplazá el binario y ejecutá `mercadolibre-mcp install --client all` en Linux/macOS). **No necesitás rotar claves ni volver a autorizar:** se conservan intactos tus archivos `config.json`, `token.json` y `business.sqlite3`, y se migran automáticamente configuraciones viejas de `uvx`/Python. Si usabas una configuración por proyecto, registrá el binario con `install --scope project --client <claude-code|codex|antigravity>` en ese proyecto. Solo si tu autorización anterior tenía permisos parciales (sin escritura), activá los permisos faltantes en el DevCenter de tu misma app y volvé a autorizar.
 
 ## Instalación manual
 
@@ -43,7 +43,7 @@ ML doctor
 
 ### 3. Registrar en tu cliente de IA
 
-`ML install --client claude-code` registra Claude Code y `ML install --client codex` registra Codex en la app local de ChatGPT, la terminal y el IDE del mismo host. También podés elegir ambos con `ML install --client claude-code --client codex`. Reiniciá el cliente y pedile que invoque `meli_start_here` y `meli_status`. [Configuración MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=desktop)
+`ML install --client claude-code` registra Claude Code, `ML install --client codex` registra Codex, y `ML install --client antigravity` registra Antigravity (y `agy` si está instalado). También podés registrar todos con `ML install --client all`. Reiniciá el cliente y pedile que invoque `meli_start_here` y `meli_status`. [Configuración MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=desktop)
 
 ## Archivos privados y limitaciones
 
