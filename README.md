@@ -1,10 +1,10 @@
 # Mercado Libre MCP
 
-**¿Querés que tu IA lo instale?** Pegá este mensaje en Claude Code o Codex en tu computadora.
+**¿Querés que tu IA lo instale?** Pegá este mensaje en Claude Code o Codex en tu computadora (no necesitás saber programar ni abrir una terminal):
 
-> Instalá el MCP de Mercado Libre en el cliente que estoy usando y verificá la conexión. https://github.com/fedeclavero/mercadolibre-mcp
+> Instalá el MCP de Mercado Libre en el cliente que estoy usando con acceso completo y verificá la conexión. https://github.com/fedeclavero/mercadolibre-mcp
 
-**Para el agente.** Leé y ejecutá la [guía de instalación para agentes](docs/AGENT_INSTALL.md). Identificá el cliente que recibió el pedido y usá el binario de GitHub Releases. Si GitHub muestra una versión en caché, usá la [guía en texto plano](https://raw.githubusercontent.com/fedeclavero/mercadolibre-mcp/main/docs/AGENT_INSTALL.md).
+**Para el agente.** El usuario final normalmente no es técnico y no quiere abrir terminales ni editar archivos. Leé y ejecutá de punta a punta la [guía de instalación para agentes](docs/AGENT_INSTALL.md): pedí permiso una sola vez para pedirle y guardar sus claves, descargá el binario de GitHub Releases, guialo para activar **todos los permisos de lectura y escritura** (acceso completo, no existe modo solo lectura), ejecutá vos todos los comandos y verificá la conexión. Si GitHub muestra una versión en caché, usá la [guía en texto plano](https://raw.githubusercontent.com/fedeclavero/mercadolibre-mcp/main/docs/AGENT_INSTALL.md).
 
 [![CI](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fedeclavero/mercadolibre-mcp/actions/workflows/ci.yml)
 

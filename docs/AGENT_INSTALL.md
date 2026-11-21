@@ -1,11 +1,24 @@
-# Instalación para agentes de IA (ejecutala de punta a punta)
+# Instalación para agentes de IA (ejecutala completa por el usuario)
 
-Cuando el usuario comparta el enlace del repositorio y pida instalarlo, ejecutá esta guía en la computadora donde corre su cliente. `ML` representa la ruta absoluta de `mercadolibre-mcp` en los ejemplos. En PowerShell podés guardar esa ruta en `$ML` e invocarla con `& $ML`.
+> **Regla principal: el usuario final no es técnico y probablemente le da miedo abrir una terminal o tocar archivos.** Vos, como agente de IA, hacés **todo el proceso de punta a punta** en su computadora (**Claude Code** o **Codex**). Nunca le devuelvas comandos para correr a mano ni le pidas que abra una terminal o edite configuraciones. Hablá en lenguaje simple y en el idioma del usuario.
 
-## 1. Elegí el cliente y descargá el binario
+`ML` representa la ruta absoluta de `mercadolibre-mcp` en los ejemplos. En Windows PowerShell guardala en `$ML` e invocala con `& $ML`.
 
-1. Detectá si estás en Claude Code o Codex. Registrá ese cliente. Si el usuario eligió ambos, registrá ambos. Si tu sesión corre en otro equipo, retomá el pedido desde el cliente local.
-2. Abrí la última release de GitHub y descargá el archivo de la tabla y `SHA256SUMS.txt` del mismo tag. Compará el SHA-256 con `Get-FileHash -Algorithm SHA256` en Windows, `sha256sum` en Linux o `shasum -a 256` en macOS. [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest)
+## 0. Pedí permiso una sola vez y explicá cómo vas a trabajar
+
+Antes de empezar, decile algo como esto en lenguaje claro y esperá su confirmación:
+
+> *"Para conectar tu cuenta de Mercado Libre con **acceso completo** (lectura y escritura, así puedo consultar y editar tus publicaciones, precios, stock, preguntas y promociones desde el primer momento), voy a guiarte paso a paso para obtener tus claves, te las voy a pedir, las voy a guardar en tu computadora y voy a configurar todo en tu app de IA. Yo me encargo de toda la parte técnica: no tenés que abrir ninguna terminal ni editar archivos. ¿Me das permiso para hacerlo?"*
+
+En cuanto el usuario diga que sí:
+- **Hacés todo vos** (descargar, verificar, guardar las claves, autorizar, registrar el MCP y verificar) sin volver a pedir permiso para cada paso técnico.
+- **Acceso completo desde el momento uno (NO existe modo solo lectura):** el vendedor quiere que puedas trabajar y editar su cuenta sin trabas. Asegurate de habilitar **todos los permisos funcionales con lectura y escritura** desde el inicio.
+- **Higiene básica:** nunca subas claves a Git, nunca las pegues en sitios públicos y no repitas secretos ni URLs de retorno en tu resumen final.
+
+## 1. Elegí el cliente y descargá el binario (lo hacés vos)
+
+1. Detectá si estás en **Claude Code** o **Codex**. Registrá ese cliente (o ambos si el usuario lo pide). Si tu sesión corre en otro equipo, indicá retomar el pedido desde el cliente local.
+2. Abrí la última release de GitHub y descargá el archivo que corresponda al sistema operativo del usuario junto con `SHA256SUMS.txt` del mismo tag. Verificá el SHA-256 (`Get-FileHash -Algorithm SHA256` en Windows, `sha256sum` en Linux, `shasum -a 256` en macOS). [GitHub Releases](https://github.com/fedeclavero/mercadolibre-mcp/releases/latest)
 
 | Equipo | Archivo de la release |
 | --- | --- |
@@ -14,43 +27,79 @@ Cuando el usuario comparta el enlace del repositorio y pida instalarlo, ejecutá
 | macOS Intel | `mercadolibre-mcp-macos-x86_64.tar.gz` |
 | Linux x86-64 | `mercadolibre-mcp-linux-x86_64.tar.gz` |
 
-3. Extraé el archivo. En Windows usá `Expand-Archive` y guardá `mercadolibre-mcp.exe` en `%LOCALAPPDATA%\Programs\mercadolibre-mcp`. En macOS o Linux usá `tar -xzf` y guardá el binario en `~/.local/bin`. Conservá esa ubicación para que el cliente pueda iniciarlo y verificá con `ML --version`. El ZIP de Windows también ofrece `Instalar.cmd` para la instalación interactiva.
-4. Si ya existe una instalación autorizada, reutilizá sus credenciales. `ML doctor --offline --json` permite revisar el estado local. Si la autorización existente está completa, seguí en el paso 5. Si el usuario necesita autorizar la cuenta por primera vez, pedile el país para elegir el DevCenter.
+3. Extraé el archivo y guardá el ejecutable en una ubicación fija:
+   - Windows: `%LOCALAPPDATA%\Programs\mercadolibre-mcp\mercadolibre-mcp.exe` (usá `Expand-Archive`; el ZIP también trae `Instalar.cmd` por si alguien quiere instalación con doble clic).
+   - macOS / Linux: `~/.local/bin/mercadolibre-mcp` (usá `tar -xzf` y `chmod +x`).
+   Verificá con `ML --version`.
+4. **Si ya existe una instalación autorizada, no rotes ni cambies sus claves:** ejecutá `ML doctor --offline --json`. Si las credenciales ya están guardadas y con todos los permisos, pasá directo al paso 5. Si falta autorizar por primera vez, preguntale en qué país vende (`ar`, `br`, `mx`, `cl`, `co`, `uy`, `pe`, `ec`, `ve`).
 
-## 2. Crear la app en el DevCenter de Mercado Libre
+## 2. Guiá paso a paso para crear la app en Mercado Libre (con TODOS los permisos)
 
-Ejecutá `ML devcenter --country ar --open` y reemplazá `ar` por el país del vendedor (`ar br mx cl co uy pe ec ve`). Si el navegador no se abre desde tu sesión, `ML devcenter --country ar --json` devuelve el enlace `devcenter_url` y los pasos.
-1. El usuario inicia sesión con la cuenta TITULAR (no colaborador). En AR/MX/BR/CL el DevCenter exige antes tener validados los datos del titular.
-2. "Crear nueva aplicación". Nombre único, descripción (150 caracteres máx.) y logo cualquiera.
-3. URI de redirección HTTPS (obligatoria): `https://localhost:8765/callback`. La documentación oficial exige HTTPS pero no aclara si acepta localhost: si el formulario la rechaza, probá `https://127.0.0.1:8765/callback`, luego `https://www.mercadolibre.com.ar/` (el ejemplo de la propia documentación), o una URL HTTPS de un dominio del usuario. Usá luego esa misma URI en el paso 3.
-4. Marcá "Use PKCE". NO marques "Device Grant".
-5. Habilitá **todos los permisos funcionales de Mercado Libre**. Elegí **Lectura y escritura** en cada grupo que ofrezca ese nivel. Activá el acceso offline (offline_access) si aparece, para renovar la autorización.
-6. Tópicos: ninguno. Guardar. Copiar el APP ID (Client ID) y el Client Secret ("Mostrar").
-El usuario completa el inicio de sesión y el segundo factor. Si acompañás la creación desde el navegador, revisá los permisos elegidos con el usuario antes de guardar.
+Ejecutá `ML devcenter --country ar --open` (reemplazando `ar` por el país del vendedor) para abrirle el DevCenter en el navegador. Si no se abre solo, corré `ML devcenter --country ar --json` y dale el enlace `devcenter_url`.
 
-## 3. Guardá las credenciales
+Guialo clic por clic en palabras simples (si tenés herramienta de navegador y al usuario le cuesta, podés acompañarlo en el navegador — el usuario completa su inicio de sesión y doble factor, y antes de guardar revisan juntos que todos los permisos estén marcados):
 
-El vendedor ingresa el Client Secret de forma privada. Con terminal interactiva ejecutá `ML setup --client-id APP_ID --redirect-uri URI_EXACTA --country PAIS`. El programa pide el secreto sin mostrarlo. Si el agente tiene un mecanismo de entrada privada, pasá el secreto por stdin con `--client-secret-stdin` y usá `--json` para comprobar el resultado. Mantené el secreto fuera del chat, argumentos de comandos, registros y commits.
+1. Iniciar sesión con la cuenta **TITULAR** de Mercado Libre (no colaborador). En AR/MX/BR/CL el DevCenter exige tener validados los datos del titular.
+2. Tocar **"Crear nueva aplicación"**. Poner cualquier nombre único, descripción corta (máx. 150 caracteres) y un logo cualquiera.
+3. **URI de redirección HTTPS (obligatoria):** `https://localhost:8765/callback`. Si el formulario la rechaza, probá `https://127.0.0.1:8765/callback`, luego `https://www.mercadolibre.com.ar/` o una URL HTTPS propia del usuario. Guardá esa misma URI exacta para el paso 3.
+4. Marcar **"Use PKCE"**. **NO** marcar "Device Grant".
+5. **Permisos (CRÍTICO — acceso completo desde el día 1):** habilitar **todos los permisos funcionales de Mercado Libre**, eligiendo **Lectura y escritura** en cada grupo que ofrezca ese nivel, y activar **offline_access** si aparece (para que el acceso se renueve solo).
+6. Tópicos: ninguno. Guardar.
+7. Pedile al usuario que te copie y pegue acá el **APP ID (Client ID)** y el **Client Secret** (tocando "Mostrar"), aclarándole que vos los vas a guardar en su computadora ahora mismo.
 
-## 4. Autorizar la cuenta
+## 3. Guardá las credenciales vos mismo (sin que el usuario abra ninguna terminal)
 
-`ML authorize` abre el navegador, captura el permiso en https://localhost y guarda el token (el usuario no ve tokens). Decile: "Se abre una página de Mercado Libre: iniciá sesión con tu cuenta principal y tocá Autorizar. Si el navegador avisa del certificado de localhost, tocá Avanzado y Continuar". Ejecutalo con tiempo de espera de 5 minutos o en segundo plano.
-Si la URI no apunta a localhost o el puerto está ocupado, ejecutá `ML authorize --start --json` y guía al vendedor para que autorice usando `authorize_url`. Luego ejecutá `ML authorize --finish` en una terminal interactiva y pedile que ingrese allí la URL de retorno, que se recibe sin mostrarla. Mantené esa URL fuera del chat y los registros.
+Cuando el usuario te pase el APP ID y el Client Secret, guardalos vos ejecutando `ML setup` pasando el secreto por stdin desde una variable temporal (y limpiala enseguida):
 
-## 5. Registrar el MCP en los clientes (nunca edites JSON/TOML a mano)
+- **Linux / macOS:**
+  ```bash
+  SECRET='<CLIENT_SECRET>'
+  printf '%s' "$SECRET" | ML setup --client-id APP_ID --client-secret-stdin --redirect-uri URI_EXACTA --country PAIS --json
+  unset SECRET
+  ```
+- **Windows PowerShell:**
+  ```powershell
+  $SECRET = '<CLIENT_SECRET>'
+  $SECRET | & $ML setup --client-id APP_ID --client-secret-stdin --redirect-uri URI_EXACTA --country PAIS --json
+  Remove-Variable SECRET
+  ```
 
-`ML install --client claude-code --json` registra Claude Code. Para Codex, usá `ML install --client codex --json`. Si el usuario eligió ambos, pasá ambos flags `--client`. El comando conserva otras entradas, guarda una copia de respaldo y comprueba el servidor por stdio. Para un solo proyecto usá `--scope project`. Claude Code usa `~/.claude.json` o `$CLAUDE_CONFIG_DIR/.claude.json`. Codex usa `~/.codex/config.toml` o `$CODEX_HOME/config.toml`. [Claude Code](https://code.claude.com/docs/en/mcp#user-scope) · [Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=desktop)
+Comprobá que el JSON devuelva `"ok": true`. Nunca muestres el secreto en tu respuesta al usuario ni lo guardes en archivos del proyecto.
 
-## 6. Verificar
+## 4. Autorizá la cuenta
 
-En el JSON de `install`, verificá `ok: true` y `launch_check.ok: true`. Ejecutá `ML doctor --json` y seguí la indicación en `next_step` si el diagnóstico falla. Pedile al usuario que vuelva a abrir su cliente, y desde esa sesión llamá `meli_start_here` y `meli_status`. Si la sesión tiene que reiniciarse para cargar las herramientas, indicá que el registro quedó hecho y que la comprobación desde el cliente sigue pendiente. La verificación consulta el estado y la cuenta.
+1. **Si la URI apunta a localhost:** ejecutá `ML authorize` (con tiempo de espera de 5 minutos o en segundo plano). Decile al usuario en palabras simples: *"Se va a abrir una página oficial de Mercado Libre. Iniciá sesión con tu cuenta titular y tocá Autorizar. Si el navegador muestra un aviso por el certificado de localhost, tocá Avanzado y Continuar."* El programa captura el permiso y guarda el token solo.
+2. **Plan B (si la URI no apunta a localhost o el puerto 8765 está ocupado):**
+   - Ejecutá `ML authorize --start --json` y pasale al usuario el enlace `authorize_url` para que inicie sesión y toque **Autorizar**.
+   - Pedile que te copie la **dirección completa (URL)** que quedó en la barra del navegador después de autorizar (aunque la página diga que no carga) y completalo vos mismo:
+     ```bash
+     ML authorize --finish --callback-url '<URL_COMPLETA>' --json
+     ```
+   - Comprobá `"ok": true` y no repitas esa URL en tu resumen final.
+
+## 5. Registrá el MCP en el cliente (nunca edites JSON/TOML a mano)
+
+- Claude Code: `ML install --client claude-code --json`
+- Codex: `ML install --client codex --json`
+- Ambos: `ML install --client claude-code --client codex --json`
+
+El instalador conserva tus otros servidores, guarda una copia de respaldo con fecha y verifica que el binario arranque bien por MCP (`stdio`). Para un solo proyecto, agregá `--scope project`.
+- Claude Code usa `~/.claude.json` o `$CLAUDE_CONFIG_DIR/.claude.json`.
+- Codex usa `~/.codex/config.toml` o `$CODEX_HOME/config.toml`.
+
+## 6. Verificá y avisale al usuario qué hacer ahora
+
+1. En el JSON de `install`, verificá `ok: true` y `launch_check.ok: true` (`48` herramientas).
+2. Ejecutá `ML doctor --json` y resolvé vos mismo cada `next_step` si algo falla.
+3. Avisale al usuario en lenguaje claro que **cierre por completo y vuelva a abrir** su app de IA (Claude Code o la app de ChatGPT con Codex) para que aparezcan las herramientas.
+4. En la nueva sesión llamá `meli_start_here` y `meli_status` para confirmar la cuenta real. Si la sesión actual necesita reiniciarse para cargar las herramientas, indicá claramente que la instalación y verificación técnica quedaron listas y que solo falta reiniciar para probarlo desde el chat.
 
 ## Si algo falla
 
-| Síntoma | Qué hacer |
+| Síntoma | Qué hacer (lo resolvés vos) |
 | --- | --- |
-| 401 | `ML authorize` |
-| 403 o "falta permiso" | El error nombra el grupo; habilitá todos los permisos funcionales en el DevCenter y ejecutá `ML authorize` |
+| 401 | Ejecutar `ML authorize` |
+| 403 o "falta permiso" | El error indica el grupo faltante; guiar al usuario para activar todos los permisos de lectura y escritura en el DevCenter y volver a ejecutar `ML authorize` |
 | `mercadolibre-mcp` no encontrado | Paso 1 |
-| El cliente no ve el MCP | Reinicio completo del cliente; `ML doctor` |
-| Puerto 8765 ocupado | Registrar otra URI con otro puerto y repetir `setup` |
+| El cliente no ve el MCP | Reinicio completo del cliente; correr `ML doctor --json` |
+| Puerto 8765 ocupado | Usar Plan B (`ML authorize --start --json` + `--finish --callback-url`) o registrar otra URI con otro puerto |

@@ -2,7 +2,11 @@
 
 ## 1. Si te pidieron instalar o conectar este MCP
 
-Si te pidieron instalar, autorizar o migrar una instalación, usá [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md). El instalador registra el binario en Claude Code o Codex y verifica la conexión por stdio. Guiá al vendedor para habilitar todos los permisos funcionales de Mercado Libre. Pedile al usuario que autorice OAuth en su navegador. Ingresá el secreto por stdin y mantenelo fuera de registros y commits.
+El usuario final normalmente no es técnico y no quiere abrir terminales ni editar archivos. Ejecutá [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md) de punta a punta por él:
+1. Pedile permiso **una sola vez** explicando que vas a guiarlo para obtener sus claves con **acceso completo (lectura y escritura, no existe modo solo lectura)**, que se las vas a pedir y las vas a manipular y guardar localmente vos mismo, y que vos te encargás de toda la instalación técnica.
+2. Descargá el binario nativo desde GitHub Releases, verificá `SHA256SUMS.txt` y reutilizá credenciales si ya existen (`doctor --offline --json`).
+3. Guialo clic por clic para activar **todos los permisos funcionales** en el DevCenter, guardá las credenciales vos mismo con `setup --client-secret-stdin`, completá `authorize` (o Plan B `--start` / `--finish --callback-url`), registrá Claude Code o Codex con `install` (nunca edites JSON/TOML a mano) y verificá con `doctor --json`.
+4. Mantené higiene: nunca commitees claves, nunca las pegues en público ni las repitas en el resumen final.
 
 ## 2. Si el MCP ya está conectado y tenés que trabajar en la cuenta de Mercado Libre
 
